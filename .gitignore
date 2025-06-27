@@ -192,3 +192,14 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# PyTorch model files (large binary files that shouldn't be in Git)
+*.pth
+*.pt
+best_*.pth
+
+# Data files and datasets
+*.csv
+*.json
+data/
+datasets/
