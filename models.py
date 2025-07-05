@@ -32,12 +32,12 @@ class StockPredictorNN(nn.Module):
         
         self.network = nn.Sequential(*layers)
         
-        self.apply(self._init_weights)
+    #     self.apply(self._init_weights)
     
-    def _init_weights(self, module):
-        if isinstance(module, nn.Linear):
-            torch.nn.init.xavier_uniform_(module.weight)
-            module.bias.data.fill_(0.01)
+    # def _init_weights(self, module):
+    #     if isinstance(module, nn.Linear):
+    #         torch.nn.init.xavier_uniform_(module.weight)
+    #         module.bias.data.fill_(0.01)
     
     def forward(self, x):
         return self.network(x)
