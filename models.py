@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 
-class StockPredictorNN(nn.Module):
+class FeedForward(nn.Module):
     """
     Feed-Forward Neural Network for Stock Price Prediction
     """
     def __init__(self, input_features, hidden_layers=[256, 128, 64], dropout=0.3):
-        super(StockPredictorNN, self).__init__()
+        super(FeedForward, self).__init__()
         
         layers = []
         prev_size = input_features
@@ -42,13 +42,13 @@ class StockPredictorNN(nn.Module):
     def forward(self, x):
         return self.network(x)
 
-class StockLSTM(nn.Module):
+class LSTM(nn.Module):
     """
     LSTM Network for Time Series Stock Prediction
     Uses sequence of past days to predict next day
     """
     def __init__(self, input_features, hidden_size=128, num_layers=2, dropout=0.2):
-        super(StockLSTM, self).__init__()
+        super(LSTM, self).__init__()
         
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -95,13 +95,13 @@ class StockLSTM(nn.Module):
         return output
 
 
-class HybridStockNet(nn.Module):
+class Hybrid(nn.Module):
     """
     Hybrid Architecture combining CNN and LSTM
     CNN extracts patterns, LSTM captures temporal dependencies
     """
     def __init__(self, input_features, cnn_channels=[64, 32], lstm_hidden=64):
-        super(HybridStockNet, self).__init__()
+        super(Hybrid, self).__init__()
         
         # 1D CNN for pattern extraction
         self.conv1 = nn.Conv1d(1, cnn_channels[0], kernel_size=3, padding=1)
