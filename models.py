@@ -5,7 +5,7 @@ class FeedForward(nn.Module):
     """
     Feed-Forward Neural Network for Stock Price Prediction
     """
-    def __init__(self, input_features, hidden_layers=[256, 128, 64], dropout=0.3):
+    def __init__(self, input_features=48, hidden_layers=[256, 128, 64], dropout=0.3):
         super(FeedForward, self).__init__()
         
         layers = []
@@ -47,7 +47,7 @@ class LSTM(nn.Module):
     LSTM Network for Time Series Stock Prediction
     Uses sequence of past days to predict next day
     """
-    def __init__(self, input_features, hidden_size=128, num_layers=2, dropout=0.2):
+    def __init__(self, input_features=48, hidden_size=128, num_layers=2, dropout=0.2):
         super(LSTM, self).__init__()
         
         self.hidden_size = hidden_size
@@ -100,7 +100,7 @@ class Hybrid(nn.Module):
     Hybrid Architecture combining CNN and LSTM
     CNN extracts patterns, LSTM captures temporal dependencies
     """
-    def __init__(self, input_features, cnn_channels=[64, 32], lstm_hidden=64):
+    def __init__(self, input_features=48, cnn_channels=[64, 32], lstm_hidden=64):
         super(Hybrid, self).__init__()
         
         # 1D CNN for pattern extraction
