@@ -201,5 +201,3 @@ best_*.pth
 # Data files and datasets
 *.csv
 *.json
-data/
-datasets/
