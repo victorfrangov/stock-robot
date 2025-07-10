@@ -201,3 +201,6 @@ best_*.pth
 # Data files and datasets
 *.csv
 *.json
+*.xlsx
+alphavantage.txt
+historical_data/
