@@ -202,5 +202,6 @@ best_*.pth
 *.csv
 *.json
 *.xlsx
+*parquet
 alphavantage.txt
 historical_data/
