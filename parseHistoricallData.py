@@ -2,9 +2,6 @@ from ib_async import *
 import pandas as pd
 from datetime import datetime, timedelta
 import os
-import asyncio
-import nest_asyncio
-nest_asyncio.apply()
 
 #       live,  paper
 ports = [7496, 7497, # tws
@@ -34,9 +31,9 @@ tickers = ['MMM',
             'APD'
             ]
 
-async def fetch_15min_data(ib, ticker, years=1):
+def fetch_15min_data(ib, ticker, years=10):
     try:
-        contract = ib.reqContractDetails(Stock(ticker, 'SMART', 'USD'))[0].contract
+        contract = Stock('MMM', 'SMART', 'USD')
     except Exception as e:
         print(f"❌ {ticker}: Contract error - {e}")
         return
@@ -44,20 +41,19 @@ async def fetch_15min_data(ib, ticker, years=1):
     bars = []
     end_time = pd.Timestamp.now(tz='US/Eastern').replace(hour=16, minute=0, second=0, microsecond=0)
     start_time = end_time - pd.Timedelta(days=365*years)
-    total_weeks = int((end_time - start_time).days / 7)
-    week_count = 0
+    year_count = 0
 
-    print(f"▶️ {ticker}: Starting download of 15min bars for {years} years ({total_weeks} weeks)")
+    print(f"▶️ {ticker}: Starting download of 15min bars for {years} years")
 
     while end_time > start_time:
         end_str = end_time.strftime('%Y%m%d %H:%M:%S US/Eastern')
-        week_count += 1
-        print(f"   {ticker}: Requesting week {week_count}/{total_weeks} ending {end_str} ...", end="\r")
+        year_count += 1
+        print(f"   {ticker}: Requesting year {year_count}/{years} ending {end_str} ...", end="\r")
         try:
-            chunk = await ib.reqHistoricalDataAsync(
+            chunk = ib.reqHistoricalData(
                 contract,
                 endDateTime=end_str,
-                durationStr='1 W',
+                durationStr='1 Y',
                 barSizeSetting='15 mins',
                 whatToShow='TRADES',
                 useRTH=True,
@@ -70,8 +66,7 @@ async def fetch_15min_data(ib, ticker, years=1):
             print(f"\n⚠️ {ticker}: No more data or hit API limit.")
             break
         bars.extend(chunk)
-        end_time -= timedelta(weeks=1)
-        # await asyncio.sleep(1.2)  # Respect IBKR pacing
+        end_time -= timedelta(days=365)
 
     if bars:
         df = pd.DataFrame([{
@@ -82,29 +77,23 @@ async def fetch_15min_data(ib, ticker, years=1):
             "close": bar.close,
             "volume": bar.volume
         } for bar in bars])
-        df.to_parquet(f"historical_data/{ticker}_{years}y_15min.parquet", index=False)
+        df.set_index('date', inplace=True)
+        df.to_parquet(f"historical_data/{ticker}.parquet", index=True)
+        df.to_excel(f"historical_data/{ticker}.xlsx", index=True)
         print(f"\n✅ {ticker}: Saved {len(df)} bars")
     else:
         print(f"\n❌ {ticker}: No data saved.")
 
-async def main():
+def main():
     ib = IB()
     ib.connect('127.0.0.1', ports[3], clientId=1)
     print(f"{'='*5}Connected{'='*5}")
 
-    total = len(tickers)
-    # Limit concurrency to avoid IBKR pacing violations
-    semaphore = asyncio.Semaphore(3)  # Adjust concurrency as needed
-    
-    async def sem_fetch(idx, ticker):
-        async with semaphore:
-            await fetch_15min_data(ib, ticker)
-        print(f"[{idx+1}/{total}] Finished {ticker}")
-
-    tasks = [sem_fetch(idx, ticker) for idx, ticker in enumerate(tickers)]
-    await asyncio.gather(*tasks)
+    for idx, ticker in enumerate(tickers):
+        fetch_15min_data(ib, ticker)
+        print(f"[{idx+1}/{len(tickers)}] Finished {ticker}")
 
     ib.disconnect()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
