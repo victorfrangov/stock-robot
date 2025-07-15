@@ -1,0 +1,6 @@
+        upLast7days  upLast30days  downLast30days  downLast7Days
+period                                                          
+0q                1             1               0              1
++1q              14            14               8              7
+0y                0             2               0              0
++1y               1             5               0              0

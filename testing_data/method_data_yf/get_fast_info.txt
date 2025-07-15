@@ -1,0 +1,21 @@
+lazy-loading dict with keys = ['currency', 'dayHigh', 'dayLow', 'exchange', 'fiftyDayAverage', 'lastPrice', 'lastVolume', 'marketCap', 'open', 'previousClose', 'quoteType', 'regularMarketPreviousClose', 'shares', 'tenDayAverageVolume', 'threeMonthAverageVolume', 'timezone', 'twoHundredDayAverage', 'yearChange', 'yearHigh', 'yearLow']
+currency: USD
+dayHigh: 505.6499938964844
+dayLow: 502.7900085449219
+exchange: NMS
+fiftyDayAverage: 469.3905999755859
+lastPrice: 504.7799987792969
+lastVolume: 2056637
+marketCap: 3751797612891.875
+open: 503.010009765625
+previousClose: 502.49
+quoteType: EQUITY
+regularMarketPreviousClose: 503.0199890136719
+shares: 7432540160
+tenDayAverageVolume: 16811020
+threeMonthAverageVolume: 20460785
+timezone: America/New_York
+twoHundredDayAverage: 426.43184982299806
+yearChange: 0.11901584202604354
+yearHigh: 506.7799987792969
+yearLow: 344.7900085449219

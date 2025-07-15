@@ -1,0 +1,37 @@
+                                                                           esgScores
+maxAge                                                                         86400
+totalEsg                                                                       17.39
+environmentScore                                                                3.61
+socialScore                                                                     8.98
+governanceScore                                                                  4.8
+ratingYear                                                                      2025
+ratingMonth                                                                        7
+highestControversy                                                               3.0
+peerCount                                                                        585
+esgPerformance                                                              LAG_PERF
+peerGroup                                                        Software & Services
+relatedControversy                                              [Customer Incidents]
+peerEsgScorePerformance            {'min': 7.44, 'avg': 21.175435897435907, 'max'...
+peerGovernancePerformance          {'min': 1.34, 'avg': 5.549801587301587, 'max':...
+peerSocialPerformance              {'min': 4.49, 'avg': 10.007142857142858, 'max'...
+peerEnvironmentPerformance         {'min': 0.05, 'avg': 3.2042460317460315, 'max'...
+peerHighestControversyPerformance  {'min': 0.0, 'avg': 0.67008547008547, 'max': 4.0}
+percentile                                                                      None
+environmentPercentile                                                           None
+socialPercentile                                                                None
+governancePercentile                                                            None
+adult                                                                          False
+alcoholic                                                                      False
+animalTesting                                                                  False
+catholic                                                                        None
+controversialWeapons                                                           False
+smallArms                                                                      False
+furLeather                                                                     False
+gambling                                                                       False
+gmo                                                                            False
+militaryContract                                                               False
+nuclear                                                                        False
+pesticides                                                                     False
+palmOil                                                                        False
+coal                                                                           False
+tobacco                                                                        False

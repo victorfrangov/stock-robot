@@ -18,7 +18,7 @@ def load_simple_ticker_list(filename='sp500_tickers.txt'):
         return []
 
 # tickers = load_simple_ticker_list('sp500_tickers.txt')
-tickers = ['MMM',
+tickers = ['MSFT',
             'AOS',
             'ABT',
             'ABBV',
@@ -33,7 +33,7 @@ tickers = ['MMM',
 
 def fetch_15min_data(ib, ticker, years=10):
     try:
-        contract = Stock('MMM', 'SMART', 'USD')
+        contract = Stock(ticker, 'SMART', 'USD')
     except Exception as e:
         print(f"❌ {ticker}: Contract error - {e}")
         return

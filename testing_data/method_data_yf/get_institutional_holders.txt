@@ -1,0 +1,11 @@
+  Date Reported                                             Holder  pctHeld     Shares         Value  pctChange
+0    2025-03-31                                 Vanguard Group Inc   0.0930  691386214  349855244412     0.0107
+1    2025-03-31                                     Blackrock Inc.   0.0785  583284931  295153834376     0.0122
+2    2025-03-31                           State Street Corporation   0.0398  296030244  149797220816     0.0031
+3    2025-03-31                                           FMR, LLC   0.0262  194591253   98467063705    -0.0148
+4    2025-03-31                      Geode Capital Management, LLC   0.0236  175469697   88791174148     0.0437
+5    2025-03-31                                JPMORGAN CHASE & CO   0.0191  142009968   71859882447     0.0524
+6    2025-03-31                      Price (T.Rowe) Associates Inc   0.0177  131514660   66549046808    -0.0269
+7    2025-03-31                                     Morgan Stanley   0.0167  123846555   62668832400    -0.0132
+8    2024-12-31                                        NORGES BANK   0.0142  105202984   53234812807     0.0838
+9    2025-06-30  Kingstone Capital Partners Texas, LLC         ...   0.0122   90549369   45819790706  5643.8706

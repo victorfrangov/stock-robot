@@ -205,3 +205,6 @@ best_*.pth
 *parquet
 alphavantage.txt
 historical_data/
+fundamentals/
+models_full_dataset/
+models_limited/

@@ -1,0 +1,14 @@
+MSFT Option: 
+
+$Ticker(contract=Option(symbol='MSFT', lastTradeDateOrContractMonth='20250718', strike=505, right='C', exchange='SMART', currency='USD'),
+
+time=datetime.datetime(2025, 7, 11, 19, 31, 24, 272641, tzinfo=datetime.timezone.utc),
+minTick=0.01, bid=3.3, bidSize=120.0, bidExchange='ACIXNBQZWTMHEJPDUS', ask=3.35, askSize=7.0, askExchange='NZU', last=3.3, lastSize=1.0, volume=7504.0, high=4.35, low=1.74, close=2.96, 
+
+bidGreeks=OptionComputation(tickAttrib=0, impliedVol=0.14089200989655024, delta=0.45115743091739546, optPrice=3.299999952316284, pvDividend=0.0, gamma=0.040480067224585206, vega=0.27985108766219646, theta=-0.30606702862553753, undPrice=503.27000000000004),
+
+askGreeks=OptionComputation(tickAttrib=0, impliedVol=0.1426779320988509, delta=0.45186996207435903, optPrice=3.3499999046325684, pvDividend=0.0, gamma=0.03997551069400489, vega=0.2798084313753595, theta=-0.30965386334320494, undPrice=503.27000000000004),
+
+lastGreeks=OptionComputation(tickAttrib=0, impliedVol=0.14090565280942446, delta=0.45116293791872303, optPrice=3.299999952316284, pvDividend=0.0, gamma=0.040476164251705214, vega=0.27985075590570085, theta=-0.3060944306603756, undPrice=503.27000000000004),
+
+modelGreeks=OptionComputation(tickAttrib=0, impliedVol=0.14113608648150133, delta=0.45025852803709193, optPrice=3.306833797533068, pvDividend=None, gamma=0.0404052006222087
