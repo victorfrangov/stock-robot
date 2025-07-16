@@ -1,5 +1,0 @@
-Breakdown                          Value
-insidersPercentHeld              0.00062
-institutionsPercentHeld          0.74637
-institutionsFloatPercentHeld     0.74683
-institutionsCount             7442.00000

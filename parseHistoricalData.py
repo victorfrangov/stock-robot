@@ -78,8 +78,8 @@ def fetch_15min_data(ib, ticker, years=10):
             "volume": bar.volume
         } for bar in bars])
         df.set_index('date', inplace=True)
-        df.to_parquet(f"historical_data/{ticker}.parquet", index=True)
-        df.to_excel(f"historical_data/{ticker}.xlsx", index=True)
+        df.to_parquet(f"testing_data/historical_data/{ticker}.parquet", index=True)
+        df.to_excel(f"testing_data/historical_data/{ticker}.xlsx", index=True)
         print(f"\n✅ {ticker}: Saved {len(df)} bars")
     else:
         print(f"\n❌ {ticker}: No data saved.")

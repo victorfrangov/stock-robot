@@ -1,8 +1,0 @@
-       Insider Purchases Last 6m     Shares  Trans
-0                      Purchases    11502.0      9
-1                          Sales   135742.0      6
-2    Net Shares Purchased (Sold)  -124240.0     15
-3      Total Insider Shares Held  4608177.0   <NA>
-4  % Net Shares Purchased (Sold)     -0.026   <NA>
-5                   % Buy Shares      0.002   <NA>
-6                  % Sell Shares      0.029   <NA>

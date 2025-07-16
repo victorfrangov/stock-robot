@@ -23,8 +23,7 @@ ticker = 'MSFT'
 #     with open(f'fundamentals/{ticker}/{report}.xml', 'w') as f:
 #         f.write(data)
 
-
-data = yf.Ticker(ticker).get_shares()
+data = yf.Ticker(ticker).get_info()
 print(data)
 # if data is not None and not data.empty:
 #     for idx, value in data.items():
