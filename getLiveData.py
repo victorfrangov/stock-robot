@@ -1,6 +1,8 @@
 from ib_async import *
 import sys
 
+# Gets live data of a specific stock using IKBR
+
 #       live,  paper
 ports = [7496, 7497, # tws
          4001, 4002] # gateway
@@ -10,7 +12,7 @@ ib.connect('127.0.0.1', ports[3], clientId=1)
 
 # Subscribe to live market data
 stock = Stock('MSFT', 'SMART', 'USD')
-options = Option('MSFT', '20250718', 505, 'C', 'SMART', "", 'USD')
+options = Option('MSFT', '20250725', 505, 'C', 'SMART', "", 'USD')
 stock_data = ib.reqMktData(stock, '', False, False)
 options_data = ib.reqMktData(options, '', False, False)
 

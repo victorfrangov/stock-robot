@@ -3,6 +3,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 
+# Upgrade over parseRealTimeData.py, parses 10Y using a loop on 1Y data, with multiple tickers support 
+
 #       live,  paper
 ports = [7496, 7497, # tws
          4001, 4002] # gateway
@@ -86,7 +88,7 @@ def fetch_15min_data(ib, ticker, years=10):
 
 def main():
     ib = IB()
-    ib.connect('127.0.0.1', ports[3], clientId=1)
+    ib.connect('127.0.0.1', ports[3], clientId=999)
     print(f"{'='*5}Connected{'='*5}")
 
     for idx, ticker in enumerate(tickers):

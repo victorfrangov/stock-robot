@@ -1,6 +1,8 @@
 from ib_async import *
 import pandas as pd
 
+# Simple script to parse 1Y of historical data at 15min interval (proof of concept)
+
 ib = IB()
 ib.connect('127.0.0.1', 4002, clientId=1)
 ticker = 'MMM'
@@ -21,7 +23,7 @@ if bars:
         "volume": bar.volume
     } for bar in bars])
     df.set_index('date', inplace=True)
-    df.to_excel(f"historical_data/{ticker}.xlsx", index=False)
+    df.to_excel(f"historical_data/{ticker}.xlsx", index=True)
     print(f"\n✅ {ticker}: Saved {len(df)} bars")
     print(df.head())
 else:
