@@ -1,0 +1,112 @@
+                                                        2024-06-30  ...          2021-06-30
+EBITDA                                              133009000000.0  ...       85134000000.0 ##
+DilutedEPS                                                    11.8  ...                8.05 ##
+NetIncome                                            88136000000.0  ...       61271000000.0 ##
+TaxProvision                                         19651000000.0  ...        9831000000.0 ##
+OperatingIncome                                     109433000000.0  ...       69916000000.0 ##
+OperatingExpense                                     61575000000.0  ...       45940000000.0 ##
+GrossProfit                                         171008000000.0  ...      115856000000.0 ##
+CostOfRevenue                                        74114000000.0  ...       52232000000.0 ##
+TotalRevenue                                        245122000000.0  ...      168088000000.0 ##
+get_income_stmt
+
+FreeCashFlow                                74071000000.0  59475000000.0  65149000000.0  56118000000.0 ##
+CapitalExpenditure                         -44477000000.0 -28107000000.0 -23886000000.0 -20622000000.0 ##
+OperatingCashFlow                          118548000000.0  87582000000.0  89035000000.0  76740000000.0 ##
+ChangeInWorkingCapital                       1824000000.0  -2388000000.0    446000000.0   -936000000.0 ##
+DepreciationAndAmortization                 22287000000.0  13861000000.0  14460000000.0  11686000000.0 ##
+NetIncomeFromContinuingOperations           88136000000.0  72361000000.0  72738000000.0  61271000000.0 #
+get_cashflow
+
+TotalDebt                                          67127000000.0   59965000000.0   61270000000.0   67775000000.0 ##
+TangibleBookValue                                 121660000000.0  128971000000.0   87720000000.0   84477000000.0 ##
+TotalEquityGrossMinorityInterest                  268477000000.0  206223000000.0  166542000000.0  141988000000.0 ##
+StockholdersEquity                                268477000000.0  206223000000.0  166542000000.0  141988000000.0 ##
+TotalLiabilitiesNetMinorityInterest               243686000000.0  205753000000.0  198298000000.0  191791000000.0 ##
+CurrentLiabilities                                125286000000.0  104149000000.0   95082000000.0   88657000000.0 ##
+TotalAssets                                       512163000000.0  411976000000.0  364840000000.0  333779000000.0 ##
+CurrentAssets                                     159734000000.0  184257000000.0  169684000000.0  184406000000.0 ##
+Inventory                                           1246000000.0    2500000000.0    3742000000.0    2636000000.0 ##
+AccountsReceivable                                 56924000000.0   48688000000.0   44261000000.0   38043000000.0 ##
+CashAndCashEquivalents                             18315000000.0   34704000000.0   13931000000.0   14224000000.0 ##
+OrdinarySharesNumber                                7434138859.0    7432000000.0    7464000000.0    7519000000.0 ##
+get_balance_sheet
+
+features = {
+    # Capital Efficiency
+    'roa': net_income / total_assets,  # Return on assets
+    'roe': net_income / stockholders_equity,  # Return on equity
+    'roic': ebit * (1 - tax_rate) / invested_capital,  # Return on invested capital
+    
+    # Cash Quality
+    'cash_conversion': operating_cash_flow / net_income,
+    'working_capital_efficiency': revenue_growth / working_capital_change,
+    
+    # Valuation Context
+    'pe_ratio': stock_price / eps,  # Need market data
+    'ev_ebitda': enterprise_value / ebitda,  # Need market data
+    'price_to_sales': market_cap / total_revenue,  # Need market data
+
+    # Cash Generation Quality
+    'fcf_margin': free_cash_flow / revenue,
+    'ocf_margin': operating_cash_flow / revenue,
+    'fcf_conversion': free_cash_flow / net_income,
+    
+    # Growth & Investment
+    'capex_intensity': capex / revenue,
+    'reinvestment_rate': capex / operating_cash_flow,
+    'fcf_after_capex': operating_cash_flow + capex,
+    
+    # Capital Allocation
+    'shareholder_yield': (dividends + buybacks) / market_cap,
+    'dividend_coverage': free_cash_flow / dividends,
+    'buyback_intensity': buybacks / market_cap,
+    
+    # Efficiency Metrics
+    'working_capital_efficiency': change_in_wc / revenue_change,
+    'cash_conversion': operating_cash_flow / net_income,
+    
+    # Year-over-year growth rates
+    'fcf_growth': (fcf_current - fcf_previous) / abs(fcf_previous),
+    'ocf_growth': (ocf_current - ocf_previous) / abs(ocf_previous),
+    'capex_growth': (capex_current - capex_previous) / abs(capex_previous),
+
+    # Liquidity Ratios
+    'current_ratio': current_assets / current_liabilities,
+    'cash_ratio': cash_and_equivalents / current_liabilities,
+    
+    # Leverage Ratios
+    'debt_to_equity': total_debt / stockholders_equity,
+    'debt_to_assets': total_debt / total_assets,
+    'equity_ratio': stockholders_equity / total_assets,
+    'tangible_equity_ratio': tangible_book_value / total_assets,
+    
+    # Asset Quality
+    'asset_turnover': revenue / total_assets,  # Need income statement
+    'receivables_turnover': revenue / accounts_receivable,
+    'inventory_turnover': cogs / inventory,  # Need income statement
+    'ppe_intensity': ppe / total_assets,
+    
+    # Growth & Efficiency
+    'working_capital_ratio': working_capital / total_assets,
+    'goodwill_ratio': goodwill / total_assets,
+    'cash_conversion_days': (receivables + inventory - payables) / daily_sales,
+    
+    # Per-Share Metrics
+    'book_value_per_share': stockholders_equity / shares_outstanding,
+    'tangible_book_per_share': tangible_book_value / shares_outstanding,
+    'revenue_per_share': total_revenue / shares_outstanding,
+    
+    # Year-over-year changes
+    'asset_growth': (total_assets_current - total_assets_previous) / total_assets_previous,
+    'equity_growth': (equity_current - equity_previous) / equity_previous,
+    'debt_growth': (debt_current - debt_previous) / abs(debt_previous),
+    'cash_growth': (cash_current - cash_previous) / abs(cash_previous),
+
+    # Customs
+    'operating_margins': operating_income / total_revenue,
+    'return_on_assets': net_income / total_assets,
+    'return_on_equity': net_income / stockholders_equity,
+    'ebitda_margins': ebitda / total_revenue,
+    'gross_margins': gross_profit / total_revenue,
+}

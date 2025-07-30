@@ -9,7 +9,6 @@ Large positive gap = High growth expectations (can lead to disappointment)
 Small gap = Conservative expectations (more likely to beat)
 Negative gap = Declining earnings expected (avoid or short candidate)
 
-
 marketCap: 3755253694464 ###
 sharesShort: 51170267 ###
 shortRatio: 2.72 ###
@@ -25,6 +24,5 @@ targetMedianPrice: 510.82
 ### End
 
 recommendationMean: 1.43333 ### Will have to say that 1 is strong buy and 5 is strong sell
-debtToEquity: 32.626 ###
 earningsGrowth: 0.177 ###
 revenueGrowth: 0.133 ###

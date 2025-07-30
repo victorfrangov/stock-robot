@@ -4,7 +4,17 @@ import talib
 
 class FeatureEngineer:
     """Generates the features for the model."""
-    def create_features(self, df: pd.DataFrame, ticker) -> pd.DataFrame:
+    
+    def create_features(self, df: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        """Compiles all the data and creates the features
+
+        Args:
+            df (pd.DataFrame): The dataframe containing the OHLCV data
+            ticker (str): The stock ticker
+
+        Returns:
+            pd.DataFrame: Dataframe with compiled features (needs more processing before feeding it to a model)
+        """
         df_copy = df.copy()
         
         if isinstance(df_copy.columns, pd.MultiIndex):
@@ -12,7 +22,7 @@ class FeatureEngineer:
             close = df_copy['Close'][ticker].values.astype(np.float64)
             high = df_copy['High'][ticker].values.astype(np.float64)
             low = df_copy['Low'][ticker].values.astype(np.float64)
-            open = df_copy['Open'][ticker].values.astype(np.float64)
+            open = df_copy['Open'][ticker].values.astype(np.float64)3
             volume = df_copy['Volume'][ticker].values.astype(np.float64)
             
             # Create clean DataFrame for calculations
@@ -104,5 +114,8 @@ class FeatureEngineer:
         
         features['SMA_Cross_5_20'] = (sma_5 > sma_20).astype(int)
         # features['SMA_Cross_10_50'] = (sma_10 > sma_50).astype(int)
+        
+        ### Fundamentals ###
+        
         
         return features.replace([np.inf, -np.inf], np.nan).fillna(method='bfill').fillna(method='ffill')
