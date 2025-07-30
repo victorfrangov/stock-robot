@@ -22,7 +22,7 @@ for i in range(30):
     if stock_data.last and options_data.last:
         sys.stdout.write(
             f"\rMSFT Stock: ${stock_data.last} (bid: ${stock_data.bid}, ask: ${stock_data.ask})\n"
-            f"MSFT Option: ${options_data.last} (bid: ${options_data.bid}, ask: ${options_data.ask})"
+            f"MSFT Option: ${options_data.last} (bid: ${options_data.bid}, ask: ${options_data.ask})" # Get greeks too.
         )
         sys.stdout.write("\033[F")  # Move cursor up one line
         sys.stdout.flush()

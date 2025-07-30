@@ -1,60 +1,35 @@
                                                2024-06-30     2023-06-30     2022-06-30     2021-06-30
-FreeCashFlow                                74071000000.0  59475000000.0  65149000000.0  56118000000.0
-RepurchaseOfCapitalStock                   -17254000000.0 -22245000000.0 -32696000000.0 -27385000000.0
-RepaymentOfDebt                            -29070000000.0  -2750000000.0  -9023000000.0  -3750000000.0
-IssuanceOfDebt                              29645000000.0            0.0            0.0            NaN
-IssuanceOfCapitalStock                       2002000000.0   1866000000.0   1841000000.0   1693000000.0
-CapitalExpenditure                         -44477000000.0 -28107000000.0 -23886000000.0 -20622000000.0
-EndCashPosition                             18315000000.0  34704000000.0  13931000000.0  14224000000.0
-BeginningCashPosition                       34704000000.0  13931000000.0  14224000000.0  13576000000.0
-EffectOfExchangeRateChanges                  -210000000.0   -194000000.0   -141000000.0    -29000000.0
-ChangesInCash                              -16179000000.0  20967000000.0   -152000000.0    677000000.0
-FinancingCashFlow                          -37757000000.0 -43935000000.0 -58876000000.0 -48486000000.0
-CashFlowFromContinuingFinancingActivities  -37757000000.0 -43935000000.0 -58876000000.0 -48486000000.0
-NetOtherFinancingCharges                    -1309000000.0  -1006000000.0   -863000000.0  -2523000000.0
-CashDividendsPaid                          -21771000000.0 -19800000000.0 -18135000000.0 -16521000000.0
-CommonStockDividendPaid                    -21771000000.0 -19800000000.0 -18135000000.0 -16521000000.0
-NetCommonStockIssuance                     -15252000000.0 -20379000000.0 -30855000000.0 -25692000000.0
-CommonStockPayments                        -17254000000.0 -22245000000.0 -32696000000.0 -27385000000.0
-CommonStockIssuance                          2002000000.0   1866000000.0   1841000000.0   1693000000.0
-NetIssuancePaymentsOfDebt                     575000000.0  -2750000000.0  -9023000000.0  -3750000000.0
-NetShortTermDebtIssuance                     5250000000.0            0.0            0.0            NaN
-ShortTermDebtIssuance                        5250000000.0            0.0            0.0            NaN
-NetLongTermDebtIssuance                     -4675000000.0  -2750000000.0  -9023000000.0  -3750000000.0
-LongTermDebtPayments                       -29070000000.0  -2750000000.0  -9023000000.0  -3750000000.0
-LongTermDebtIssuance                        24395000000.0            0.0            0.0            NaN
-InvestingCashFlow                          -96970000000.0 -22680000000.0 -30311000000.0 -27577000000.0
-CashFlowFromContinuingInvestingActivities  -96970000000.0 -22680000000.0 -30311000000.0 -27577000000.0
-NetOtherInvestingChanges                    -1298000000.0  -3116000000.0  -2825000000.0   -922000000.0
-NetInvestmentPurchaseAndSale                17937000000.0  10213000000.0  18438000000.0   2876000000.0
-SaleOfInvestment                            35669000000.0  47864000000.0  44894000000.0  65800000000.0
-PurchaseOfInvestment                       -17732000000.0 -37651000000.0 -26456000000.0 -62924000000.0
-NetBusinessPurchaseAndSale                 -69132000000.0  -1670000000.0 -22038000000.0  -8909000000.0
-PurchaseOfBusiness                         -69132000000.0  -1670000000.0 -22038000000.0  -8909000000.0
-NetPPEPurchaseAndSale                      -44477000000.0 -28107000000.0 -23886000000.0 -20622000000.0
-PurchaseOfPPE                              -44477000000.0 -28107000000.0 -23886000000.0 -20622000000.0
-OperatingCashFlow                          118548000000.0  87582000000.0  89035000000.0  76740000000.0
-CashFlowFromContinuingOperatingActivities  118548000000.0  87582000000.0  89035000000.0  76740000000.0
-ChangeInWorkingCapital                       1824000000.0  -2388000000.0    446000000.0   -936000000.0
-ChangeInOtherWorkingCapital                  5348000000.0   5535000000.0   5109000000.0   4633000000.0
-ChangeInOtherCurrentLiabilities              5616000000.0   2825000000.0   3169000000.0   5551000000.0
-ChangeInOtherCurrentAssets                  -8465000000.0  -4824000000.0  -3514000000.0  -4391000000.0
-ChangeInPayablesAndAccruedExpense            5232000000.0  -3079000000.0   3639000000.0    489000000.0
-ChangeInPayable                              5232000000.0  -3079000000.0   3639000000.0    489000000.0
-ChangeInAccountPayable                       3545000000.0  -2721000000.0   2943000000.0   2798000000.0
-ChangeInTaxPayable                           1687000000.0   -358000000.0    696000000.0  -2309000000.0
-ChangeInIncomeTaxPayable                     1687000000.0   -358000000.0    696000000.0  -2309000000.0
-ChangeInInventory                            1284000000.0   1242000000.0  -1123000000.0   -737000000.0
-ChangeInReceivables                         -7191000000.0  -4087000000.0  -6834000000.0  -6481000000.0
-ChangesInAccountReceivables                 -7191000000.0  -4087000000.0  -6834000000.0  -6481000000.0
-StockBasedCompensation                      10734000000.0   9611000000.0   7502000000.0   6118000000.0
-UnrealizedGainLossOnInvestmentSecurities     -146000000.0   -303000000.0   -509000000.0  -1057000000.0
-AssetImpairmentCharge                         206000000.0     30000000.0    101000000.0     13000000.0
-DeferredTax                                 -4738000000.0  -6059000000.0  -5702000000.0   -150000000.0
-DeferredIncomeTax                           -4738000000.0  -6059000000.0  -5702000000.0   -150000000.0
-DepreciationAmortizationDepletion           22287000000.0  13861000000.0  14460000000.0  11686000000.0
-DepreciationAndAmortization                 22287000000.0  13861000000.0  14460000000.0  11686000000.0
-Depreciation                                22287000000.0  13861000000.0  14460000000.0  11686000000.0
-OperatingGainsLosses                          245000000.0    469000000.0     -1000000.0   -205000000.0
-GainLossOnInvestmentSecurities                245000000.0    469000000.0     -1000000.0   -205000000.0
-NetIncomeFromContinuingOperations           88136000000.0  72361000000.0  72738000000.0  61271000000.0
+FreeCashFlow                                74071000000.0  59475000000.0  65149000000.0  56118000000.0 ##
+CapitalExpenditure                         -44477000000.0 -28107000000.0 -23886000000.0 -20622000000.0 ##
+OperatingCashFlow                          118548000000.0  87582000000.0  89035000000.0  76740000000.0 ##
+ChangeInWorkingCapital                       1824000000.0  -2388000000.0    446000000.0   -936000000.0 ##
+StockBasedCompensation                      10734000000.0   9611000000.0   7502000000.0   6118000000.0 ##
+DepreciationAndAmortization                 22287000000.0  13861000000.0  14460000000.0  11686000000.0 ##
+NetIncomeFromContinuingOperations           88136000000.0  72361000000.0  72738000000.0  61271000000.0 #
+
+# Key ratios and trends
+features = {
+    # Cash Generation Quality
+    'fcf_margin': free_cash_flow / revenue,
+    'ocf_margin': operating_cash_flow / revenue,
+    'fcf_conversion': free_cash_flow / net_income,
+    
+    # Growth & Investment
+    'capex_intensity': capex / revenue,
+    'reinvestment_rate': capex / operating_cash_flow,
+    'fcf_after_capex': operating_cash_flow + capex,
+    
+    # Capital Allocation
+    'shareholder_yield': (dividends + buybacks) / market_cap,
+    'dividend_coverage': free_cash_flow / dividends,
+    'buyback_intensity': buybacks / market_cap,
+    
+    # Efficiency Metrics
+    'working_capital_efficiency': change_in_wc / revenue_change,
+    'cash_conversion': operating_cash_flow / net_income,
+    
+    # Year-over-year growth rates
+    'fcf_growth': (fcf_current - fcf_previous) / abs(fcf_previous),
+    'ocf_growth': (ocf_current - ocf_previous) / abs(ocf_previous),
+    'capex_growth': (capex_current - capex_previous) / abs(capex_previous)
+}

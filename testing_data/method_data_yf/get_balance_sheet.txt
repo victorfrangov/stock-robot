@@ -1,14 +1,50 @@
-                                                2024-06-30      2023-06-30      2022-06-30      2021-06-30
-OrdinarySharesNumber                          7434138859.0    7432000000.0    7464000000.0    7519000000.0
-ShareIssued                                   7434138859.0    7432000000.0    7464000000.0    7519000000.0
-NetDebt                                      33315000000.0   12533000000.0   35850000000.0   43922000000.0
-TotalDebt                                    67127000000.0   59965000000.0   61270000000.0   67775000000.0
-TangibleBookValue                           121660000000.0  128971000000.0   87720000000.0   84477000000.0
-...                                                    ...             ...             ...             ...
-CashCashEquivalentsAndShortTermInvestments   75531000000.0  111256000000.0  104749000000.0  130256000000.0
-OtherShortTermInvestments                    57216000000.0   76552000000.0   90818000000.0  116032000000.0
-CashAndCashEquivalents                       18315000000.0   34704000000.0   13931000000.0   14224000000.0
-CashEquivalents                               6744000000.0   26226000000.0    5673000000.0    6952000000.0
-CashFinancial                                11571000000.0    8478000000.0    8258000000.0    7272000000.0
+                                                      2024-06-30      2023-06-30      2022-06-30      2021-06-30
+TotalDebt                                          67127000000.0   59965000000.0   61270000000.0   67775000000.0 ##
+TangibleBookValue                                 121660000000.0  128971000000.0   87720000000.0   84477000000.0 ##
+TotalEquityGrossMinorityInterest                  268477000000.0  206223000000.0  166542000000.0  141988000000.0 ##
+StockholdersEquity                                268477000000.0  206223000000.0  166542000000.0  141988000000.0 ##
+TotalLiabilitiesNetMinorityInterest               243686000000.0  205753000000.0  198298000000.0  191791000000.0 ##
+CurrentLiabilities                                125286000000.0  104149000000.0   95082000000.0   88657000000.0 ##
+TotalAssets                                       512163000000.0  411976000000.0  364840000000.0  333779000000.0 ##
+CurrentAssets                                     159734000000.0  184257000000.0  169684000000.0  184406000000.0 ##
+Inventory                                           1246000000.0    2500000000.0    3742000000.0    2636000000.0 ##
+AccountsReceivable                                 56924000000.0   48688000000.0   44261000000.0   38043000000.0 ##
+CashAndCashEquivalents                             18315000000.0   34704000000.0   13931000000.0   14224000000.0 ##
+OrdinarySharesNumber                                7434138859.0    7432000000.0    7464000000.0    7519000000.0 ##
 
-[78 rows x 4 columns]
+
+# Critical balance sheet ratios
+features = {
+    # Liquidity Ratios
+    'current_ratio': current_assets / current_liabilities,
+    'quick_ratio': (current_assets - inventory) / current_liabilities,
+    'cash_ratio': cash_and_equivalents / current_liabilities,
+    
+    # Leverage Ratios
+    'debt_to_equity': total_debt / stockholders_equity,
+    'debt_to_assets': total_debt / total_assets,
+    'equity_ratio': stockholders_equity / total_assets,
+    'tangible_equity_ratio': tangible_book_value / total_assets,
+    
+    # Asset Quality
+    'asset_turnover': revenue / total_assets,  # Need income statement
+    'receivables_turnover': revenue / accounts_receivable,
+    'inventory_turnover': cogs / inventory,  # Need income statement
+    'ppe_intensity': ppe / total_assets,
+    
+    # Growth & Efficiency
+    'working_capital_ratio': working_capital / total_assets,
+    'goodwill_ratio': goodwill / total_assets,
+    'cash_conversion_days': (receivables + inventory - payables) / daily_sales,
+    
+    # Per-Share Metrics
+    'book_value_per_share': stockholders_equity / shares_outstanding,
+    'tangible_book_per_share': tangible_book_value / shares_outstanding,
+    'working_capital_per_share': working_capital / shares_outstanding,
+    
+    # Year-over-year changes
+    'asset_growth': (total_assets_current - total_assets_previous) / total_assets_previous,
+    'equity_growth': (equity_current - equity_previous) / equity_previous,
+    'debt_growth': (debt_current - debt_previous) / abs(debt_previous),
+    'cash_growth': (cash_current - cash_previous) / abs(cash_previous)
+}
