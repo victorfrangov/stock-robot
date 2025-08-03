@@ -66,7 +66,8 @@ def parse_yf_data(ticker: str,
                            'targetMeanPrice',
                            'targetMedianPrice',
                            'earningsGrowth',
-                           'revenueGrowth'
+                           'revenueGrowth',
+                           'currentPrice'
                            ]]
     
     ratings.index = pd.to_datetime(ratings.index)
