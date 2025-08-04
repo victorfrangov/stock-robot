@@ -52,7 +52,6 @@ def parse_yf_data(ticker: str,
                                          ]]
     
     info_clean = info.loc[['enterpriseValue',
-                           'beta',
                            'trailingPE',
                            'forwardPE',
                            'marketCap',

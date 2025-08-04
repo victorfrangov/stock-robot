@@ -56,20 +56,6 @@ features = {
     'capex_intensity': capex / revenue,
     'reinvestment_rate': capex / operating_cash_flow,
     'fcf_after_capex': operating_cash_flow + capex,
-    
-    # Capital Allocation
-    'shareholder_yield': (dividends + buybacks) / market_cap,
-    'dividend_coverage': free_cash_flow / dividends,
-    'buyback_intensity': buybacks / market_cap,
-    
-    # Efficiency Metrics
-    'working_capital_efficiency': change_in_wc / revenue_change,
-    'cash_conversion': operating_cash_flow / net_income,
-    
-    # Year-over-year growth rates
-    'fcf_growth': (fcf_current - fcf_previous) / abs(fcf_previous),
-    'ocf_growth': (ocf_current - ocf_previous) / abs(ocf_previous),
-    'capex_growth': (capex_current - capex_previous) / abs(capex_previous),
 
     # Liquidity Ratios
     'current_ratio': current_assets / current_liabilities,
@@ -102,11 +88,4 @@ features = {
     'equity_growth': (equity_current - equity_previous) / equity_previous,
     'debt_growth': (debt_current - debt_previous) / abs(debt_previous),
     'cash_growth': (cash_current - cash_previous) / abs(cash_previous),
-
-    # Customs
-    'operating_margins': operating_income / total_revenue,
-    'return_on_assets': net_income / total_assets,
-    'return_on_equity': net_income / stockholders_equity,
-    'ebitda_margins': ebitda / total_revenue,
-    'gross_margins': gross_profit / total_revenue,
 }

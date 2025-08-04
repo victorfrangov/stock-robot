@@ -1,241 +1,120 @@
 import pandas as pd
 import numpy as np
 import talib
+from pandas.tseries.offsets import BDay
 
 class FeatureEngineer:
     """Generates the features for the model."""
+    def __init__(self):
+        """
+        Initializes new variables to store the data
+        """
+        self.ticker = None
+        self.ohlcv_df = None
+        self.fundamentals_df = None
+        self.info_df = None
+        self.ratings_df = None
     
-    def load_data(self, ticker: str) -> list[pd.DataFrame]:
+    def load_data(self, ticker: str) -> None:
         """Load all the collected data from the excel and parquet files into dataframes
 
         Args:
             ticker (str): Ticker symbol
-
-        Returns:
-            list[pd.DataFrame]: Returns all dataframes into a list
         """
-        ohlcv_df = pd.read_excel(f'historical_data/xlsx/{ticker}.xlsx')
-        fundamentals_df = pd.read_excel(f'fundamentals/{ticker}/fundamentals.xlsx')
-        info_df = pd.read_excel(f'fundamentals/{ticker}/info.xlsx')
-        ratings_df = pd.read_excel(f'fundamentals/{ticker}/ratings.xlsx')
-
-        return [ohlcv_df, fundamentals_df, info_df, ratings_df]
+        self.ticker = ticker
+        self.ohlcv_df = pd.read_excel(f'historical_data/xlsx/{ticker}.xlsx')
+        self.fundamentals_df = pd.read_excel(f'fundamentals/{ticker}/fundamentals.xlsx')
+        self.info_df = pd.read_excel(f'fundamentals/{ticker}/info.xlsx')
+        self.ratings_df = pd.read_excel(f'fundamentals/{ticker}/ratings.xlsx')
     
-    def calculate_fundamental_features(self, ticker: str) -> dict:
+    def calculate_fundamental_features_timeseries(self, ticker: str) -> pd.DataFrame:
         """Calculate all fundamental features from parsed data
         
         Args:
             ticker (str): Ticker symbol
             
         Returns:
-            dict: Returns the fundamental features in a dict. Fundamentals, info and analyst ratings are all appended in the same dict.
+            Dataframe: Returns the fundamental features in a dataframe. Fundamentals, info and analyst ratings are all appended in the same df.
         """
-    
-        # Load data directly as DataFrames
-        df = self.load_data(ticker)
-        fundamentals_df = df[1]
-        info_df = df[2]
-        ratings_df = df[3]
-        
         # Get all date columns (excluding 'Source' and 'index')
-        date_cols = [col for col in fundamentals_df.columns if col not in ['Source', 'index']]
-
-        def get_fundamental(row_name):
-            """Returns the value for the given fundamental at the latest date, or 0 if missing."""
-            result = fundamentals_df.loc[fundamentals_df['index'] == row_name, date_cols].squeeze()
-            return result.astype(np.float64).dropna() if not result.empty and pd.notnull(result.values[0]) else 0
-
-        ebitda = get_fundamental('EBITDA')
-        diluted_eps = get_fundamental('DilutedEPS')
-        net_income = get_fundamental('NetIncome')
-        tax_provision = get_fundamental('TaxProvision')
-        operating_income = get_fundamental('OperatingIncome')
-        operating_expense = get_fundamental('OperatingExpense')
-        gross_profit = get_fundamental('GrossProfit')
-        cost_of_revenue = get_fundamental('CostOfRevenue')
-        total_revenue = get_fundamental('TotalRevenue')
-    
-        # Balance Sheet
-        total_debt = get_fundamental('TotalDebt')
-        tangible_book_value = get_fundamental('TangibleBookValue')
-        stockholders_equity = get_fundamental('StockholdersEquity')
-        total_assets = get_fundamental('TotalAssets')
-        current_assets = get_fundamental('CurrentAssets')
-        current_liabilities = get_fundamental('CurrentLiabilities')
-        accounts_receivable = get_fundamental('AccountsReceivable')
-        cash_and_equivalents = get_fundamental('CashAndCashEquivalents')
-        shares_outstanding = get_fundamental('OrdinarySharesNumber')
-    
-        # Cash Flow
-        free_cash_flow = get_fundamental('FreeCashFlow')
-        capex = abs(get_fundamental('CapitalExpenditure'))  # Make positive
-        operating_cash_flow = get_fundamental('OperatingCashFlow')
-        change_in_wc = get_fundamental('ChangeInWorkingCapital')
-    
-        # Calculate all features
-        features = {}
-    
-        # === CAPITAL EFFICIENCY ===
-        features['return_on_assets'] = net_income / total_assets
-        features['return_on_equity'] = net_income / stockholders_equity
-    
-        # === CASH QUALITY ===
-        features['cash_conversion'] = operating_cash_flow / net_income
-    
-        # === CASH GENERATION QUALITY ===
-        features['fcf_margin'] = free_cash_flow / total_revenue
-        features['ocf_margin'] = operating_cash_flow / total_revenue
-        features['fcf_conversion'] = free_cash_flow / net_income
-    
-        # === GROWTH & INVESTMENT ===
-        features['capex_intensity'] = capex / total_revenue
-        features['reinvestment_rate'] = capex / operating_cash_flow
-        features['fcf_after_capex'] = operating_cash_flow - capex
-    
-        # === LIQUIDITY RATIOS ===
-        features['current_ratio'] = current_assets / current_liabilities
-        features['cash_ratio'] = cash_and_equivalents / current_liabilities
-    
-        # === LEVERAGE RATIOS ===
-        features['debt_to_equity'] = total_debt / stockholders_equity
-        features['debt_to_assets'] = total_debt / total_assets
-        features['equity_ratio'] = stockholders_equity / total_assets
-        features['tangible_equity_ratio'] = tangible_book_value / total_assets
-    
-        # === ASSET QUALITY ===
-        features['asset_turnover'] = total_revenue / total_assets
-        features['receivables_turnover'] = total_revenue / accounts_receivable
-    
-        # === GROWTH & EFFICIENCY ===
-        working_capital = current_assets - current_liabilities
-        features['working_capital_ratio'] = working_capital / total_assets
-    
-        # === PER-SHARE METRICS ===
-        features['book_value_per_share'] = stockholders_equity / shares_outstanding
-        features['tangible_book_per_share'] = tangible_book_value / shares_outstanding
-        features['revenue_per_share'] = total_revenue / shares_outstanding
-    
-        # === MARGIN RATIOS ===
-        features['operating_margins'] = operating_income / total_revenue
-        features['ebitda_margins'] = ebitda / total_revenue
-        features['gross_margins'] = gross_profit / total_revenue
-        features['net_margins'] = net_income / total_revenue
-        
-        info_dict = dict(zip(info_df.iloc[:, 0], info_df['Value']))
-                
-        # Market data from info
-        market_cap = info_dict.get('marketCap', 0)
-        current_price = info_dict.get('currentPrice', 0)
-        enterprise_value = info_dict.get('enterpriseValue', 0)
-        
-        # Additional ratios with market data
-        features['price_to_sales'] = market_cap / total_revenue
-            
-        features['pe_ratio'] = current_price / diluted_eps
-            
-        features['ev_ebitda'] = enterprise_value / ebitda
-                
-        features = pd.DataFrame(list(features.items()), columns=['Key', 'Value'])
-        features.to_excel('testing_data/fundamentals_features.xlsx', index=False)
-        return features
-    
-    def calculate_fundamental_features_timeseries(self, ticker: str) -> pd.DataFrame:
-        df = self.load_data(ticker)
-        fundamentals_df = df[1]
-        info_df = df[2]
-
-        # Get all date columns (excluding 'Source' and 'index')
-        date_cols = [col for col in fundamentals_df.columns if col not in ['Source', 'index']]
+        date_cols = [col for col in self.fundamentals_df.columns if col not in ['Source', 'index']]
 
         # Helper to get a Series for each fundamental (indexed by date)
-        def get_value(row_name):
-            row = fundamentals_df.loc[fundamentals_df['index'] == row_name, date_cols]
+        def get_fund_value(row_name):
+            row = self.fundamentals_df.loc[self.fundamentals_df['index'] == row_name, date_cols]
             if row.empty:
                 return pd.Series([np.nan] * len(date_cols), index=date_cols)
             return row.squeeze().astype(np.float64)
-
-        info_dict = dict(zip(info_df.iloc[:, 0], info_df['Value']))
-                
-        # Market data from info
-        market_cap = info_dict.get('marketCap', 0)
-        current_price = info_dict.get('currentPrice', 0)
-        enterprise_value = info_dict.get('enterpriseValue', 0)
         
         features = {
-            'return_on_assets': get_value('NetIncome') / get_value('TotalAssets'),
-            'return_on_equity': get_value('NetIncome') / get_value('StockholdersEquity'),
-            'cash_conversion': get_value('OperatingCashFlow') / get_value('NetIncome'),
-            'fcf_margin': get_value('FreeCashFlow') / get_value('TotalRevenue'),
-            'ocf_margin': get_value('OperatingCashFlow') / get_value('TotalRevenue'),
-            'fcf_conversion': get_value('FreeCashFlow') / get_value('NetIncome'),
-            'capex_intensity': abs(get_value('CapitalExpenditure')) / get_value('TotalRevenue'),
-            'reinvestment_rate': abs(get_value('CapitalExpenditure')) / get_value('OperatingCashFlow'),
-            'fcf_after_capex': get_value('OperatingCashFlow') - abs(get_value('CapitalExpenditure')),
-            'current_ratio': get_value('CurrentAssets') / get_value('CurrentLiabilities'),
-            'cash_ratio': get_value('CashAndCashEquivalents') / get_value('CurrentLiabilities'),
-            'debt_to_equity': get_value('TotalDebt') / get_value('StockholdersEquity'),
-            'debt_to_assets': get_value('TotalDebt') / get_value('TotalAssets'),
-            'equity_ratio': get_value('StockholdersEquity') / get_value('TotalAssets'),
-            'tangible_equity_ratio': get_value('TangibleBookValue') / get_value('TotalAssets'),
-            'asset_turnover': get_value('TotalRevenue') / get_value('TotalAssets'),
-            'receivables_turnover': get_value('TotalRevenue') / get_value('AccountsReceivable'),
-            'working_capital_ratio': (get_value('CurrentAssets') - get_value('CurrentLiabilities')) / get_value('TotalAssets'),
-            'book_value_per_share': get_value('StockholdersEquity') / get_value('OrdinarySharesNumber'),
-            'tangible_book_per_share': get_value('TangibleBookValue') / get_value('OrdinarySharesNumber'),
-            'revenue_per_share': get_value('TotalRevenue') / get_value('OrdinarySharesNumber'),
-            'operating_margins': get_value('OperatingIncome') / get_value('TotalRevenue'),
-            'ebitda_margins': get_value('EBITDA') / get_value('TotalRevenue'),
-            'gross_margins': get_value('GrossProfit') / get_value('TotalRevenue'),
-            'net_margins': get_value('NetIncome') / get_value('TotalRevenue'),
-            'market_cap': market_cap,
-            'current_price': current_price,
-            'enterprise_value': enterprise_value,
-            'price_to_sales': market_cap / get_value('TotalRevenue'),
-            'pe_ratio': current_price / get_value('DilutedEPS'),
-            'ev_ebitda': enterprise_value / get_value('EBITDA')
+            'return_on_assets': get_fund_value('NetIncome') / get_fund_value('TotalAssets'),
+            'return_on_equity': get_fund_value('NetIncome') / get_fund_value('StockholdersEquity'),
+            'cash_conversion': get_fund_value('OperatingCashFlow') / get_fund_value('NetIncome'),
+            'fcf_margin': get_fund_value('FreeCashFlow') / get_fund_value('TotalRevenue'),
+            'ocf_margin': get_fund_value('OperatingCashFlow') / get_fund_value('TotalRevenue'),
+            'fcf_conversion': get_fund_value('FreeCashFlow') / get_fund_value('NetIncome'),
+            'capex_intensity': abs(get_fund_value('CapitalExpenditure')) / get_fund_value('TotalRevenue'),
+            'reinvestment_rate': abs(get_fund_value('CapitalExpenditure')) / get_fund_value('OperatingCashFlow'),
+            'fcf_after_capex': get_fund_value('OperatingCashFlow') - abs(get_fund_value('CapitalExpenditure')),
+            'current_ratio': get_fund_value('CurrentAssets') / get_fund_value('CurrentLiabilities'),
+            'cash_ratio': get_fund_value('CashAndCashEquivalents') / get_fund_value('CurrentLiabilities'),
+            'debt_to_equity': get_fund_value('TotalDebt') / get_fund_value('StockholdersEquity'),
+            'debt_to_assets': get_fund_value('TotalDebt') / get_fund_value('TotalAssets'),
+            'equity_ratio': get_fund_value('StockholdersEquity') / get_fund_value('TotalAssets'),
+            'tangible_equity_ratio': get_fund_value('TangibleBookValue') / get_fund_value('TotalAssets'),
+            'asset_turnover': get_fund_value('TotalRevenue') / get_fund_value('TotalAssets'),
+            'receivables_turnover': get_fund_value('TotalRevenue') / get_fund_value('AccountsReceivable'),
+            'working_capital_ratio': (get_fund_value('CurrentAssets') - get_fund_value('CurrentLiabilities')) / get_fund_value('TotalAssets'),
+            'book_value_per_share': get_fund_value('StockholdersEquity') / get_fund_value('OrdinarySharesNumber'),
+            'tangible_book_per_share': get_fund_value('TangibleBookValue') / get_fund_value('OrdinarySharesNumber'),
+            'revenue_per_share': get_fund_value('TotalRevenue') / get_fund_value('OrdinarySharesNumber'),
+            'operating_margins': get_fund_value('OperatingIncome') / get_fund_value('TotalRevenue'),
+            'ebitda_margins': get_fund_value('EBITDA') / get_fund_value('TotalRevenue'),
+            'gross_margins': get_fund_value('GrossProfit') / get_fund_value('TotalRevenue'),
+            'net_margins': get_fund_value('NetIncome') / get_fund_value('TotalRevenue')
         }
         
-
         # Combine all features into a DataFrame (features as rows, dates as columns)
         features_df = pd.DataFrame(features).T
         features_df.columns = pd.to_datetime(features_df.columns)
         features_df.index.name = "Feature"
+        features_df = features_df.iloc[:, :-1]
 
         # Save to Excel
         features_df.to_excel('testing_data/fundamentals_features_timeseries.xlsx')
-
+        
         return features_df
     
     def create_features(self, ticker: str) -> pd.DataFrame:
         """Compiles all the data and creates the features
 
         Args:
-            df (pd.DataFrame): The dataframe containing the OHLCV data
             ticker (str): The stock ticker
 
         Returns:
             pd.DataFrame: Dataframe with compiled features (needs more processing before feeding it to a model)
         """
-        df = self.load_data(ticker)
-        ohlcv_df = df[0]
-        fundamentals_df = df[1]
+        self.load_data(ticker)
+        
+        self.ohlcv_df['date'] = pd.to_datetime(self.ohlcv_df['date'])
+        self.ohlcv_df.set_index('date', inplace=True)
         
         # Extract OHLCV arrays
-        close = ohlcv_df['close'].values.astype(np.float64)
-        high = ohlcv_df['high'].values.astype(np.float64)
-        low = ohlcv_df['low'].values.astype(np.float64)
-        open_price = ohlcv_df['open'].values.astype(np.float64)
-        volume = ohlcv_df['volume'].values.astype(np.float64)
+        close = self.ohlcv_df['close'].values.astype(np.float64)
+        high = self.ohlcv_df['high'].values.astype(np.float64)
+        low = self.ohlcv_df['low'].values.astype(np.float64)
+        open_price = self.ohlcv_df['open'].values.astype(np.float64)
+        volume = self.ohlcv_df['volume'].values.astype(np.float64)
             
         # Create series
-        close_series = pd.Series(close, index=ohlcv_df.index)
-        volume_series = pd.Series(volume, index=ohlcv_df.index)
-        high_series = pd.Series(high, index=ohlcv_df.index)
-        low_series = pd.Series(low, index=ohlcv_df.index)
-        open_series = pd.Series(open_price, index=ohlcv_df.index)
+        close_series = pd.Series(close, index=self.ohlcv_df.index)
+        volume_series = pd.Series(volume, index=self.ohlcv_df.index)
+        high_series = pd.Series(high, index=self.ohlcv_df.index)
+        low_series = pd.Series(low, index=self.ohlcv_df.index)
+        open_series = pd.Series(open_price, index=self.ohlcv_df.index)
         
         # Initialize features DataFrame
-        features = pd.DataFrame(index=ohlcv_df.index)
+        features = pd.DataFrame(index=self.ohlcv_df.index)
 
         # Raw OHLCV data
         features['Open'] = open_series
@@ -311,33 +190,127 @@ class FeatureEngineer:
         features['Volume_Change'] = volume_series.pct_change()
         features['Price_Volume'] = close_series * volume / 1000000
         features['OBV'] = talib.OBV(close, volume)
-        
         features['SMA_Cross_5_20'] = (sma_5 > sma_20).astype(int)
         
-        fundamental_features = self.calculate_fundamental_features_timeseries(ticker)
+        # =============================================================================
+        # 2. ADD INFO DATA (Static context - same value for all dates)
+        # =============================================================================
+        info_dict = dict(zip(self.info_df.iloc[:, 0], self.info_df.iloc[:, 1]))
         
-        # Reshape fundamentals to long format
-        fund_long = fundamentals_df.melt(id_vars=['Source', 'index'], var_name='date', value_name='value')
-        fund_wide = fund_long.pivot_table(index='date', columns='index', values='value')
-        fund_wide.index = pd.to_datetime(fund_wide.index)
+        # Market data from info (broadcast to all dates as context)
+        info_features = {
+            'Info_enterprise_value': info_dict.get('enterpriseValue', 0),
+            'Info_market_cap': info_dict.get('marketCap', 0),
+            'Info_trailing_pe': info_dict.get('trailingPE', 0),
+            'Info_forward_pe': info_dict.get('forwardPE', 0),
+            'Info_shares_short': info_dict.get('sharesShort', 0),
+            'Info_short_ratio': info_dict.get('shortRatio', 0),
+            'Info_price_to_book': info_dict.get('priceToBook', 0),
+            'Info_trailing_eps': info_dict.get('trailingEps', 0),
+            'Info_forward_eps': info_dict.get('forwardEps', 0),
+            'Info_target_high': info_dict.get('targetHighPrice', 0),
+            'Info_target_low': info_dict.get('targetLowPrice', 0),
+            'Info_target_mean': info_dict.get('targetMeanPrice', 0),
+            'Info_target_median': info_dict.get('targetMedianPrice', 0),
+            'Info_earnings_growth': info_dict.get('earningsGrowth', 0),
+            'Info_revenue_growth': info_dict.get('revenueGrowth', 0),
+            'Info_current_price': info_dict.get('currentPrice', 0)
+        }
+        
+        # Add info features as context (same value for all dates)
+        for feature_name, feature_value in info_features.items():
+            features[feature_name] = feature_value
 
-        # Merge with OHLCV, forward-fill fundamentals
-        ohlcv_df['date'] = pd.to_datetime(ohlcv_df['date'])
-        features = ohlcv_df.merge(fund_wide, left_on='date', right_index=True, how='left')
-        features = features.sort_values('date').ffill()
+        # =============================================================================
+        # 4. ADD CALCULATED FUNDAMENTAL FEATURES (Time-series - specific dates only)
+        # =============================================================================
+        
+        # Get the calculated fundamental features from your existing method
+        fundamental_features_df = self.calculate_fundamental_features_timeseries(ticker)
+        
+        # The calculated features come with dates as columns, we need to transpose and merge properly
+        # Transpose to get dates as index and features as columns
+        calc_fund_df = fundamental_features_df.T
+        calc_fund_df.index = pd.to_datetime(calc_fund_df.index)
 
-        # Merge ratings data
-        ratings_df = df[3]
-        ratings_df['date'] = pd.to_datetime(ratings_df['GradeDate'])
-        ratings_df.set_index('date', inplace=True)
-        features = features.merge(ratings_df, left_on='date', right_index=True, how='left')
-        features = features.sort_values('date').ffill()
+        # Add 'Fund_Calc_' prefix to calculated features
+        calc_fund_df.columns = [f'Fund_Calc_{col}' for col in calc_fund_df.columns]
 
-        # NOW add fundamental features as single values broadcast to all dates
-        for feature_name, feature_value in fundamental_features.items():
-            features[f'Fund_{feature_name}'] = feature_value
+        # =============================================================================
+        # HANDLE DATE vs DATETIME MISMATCH - SMART BUSINESS DAY MATCHING
+        # =============================================================================
 
-        return features.replace([np.inf, -np.inf], np.nan).ffill().bfill()
+        # Instead of exact matching, find next business day for each fundamental date
+        fund_dates_business = []
+        for fund_date in calc_fund_df.index:
+            # For Dec 31st dates, find the NEXT available trading day
+            if fund_date.month == 12 and fund_date.day == 31:
+                # Start from next day and find first business day
+                next_business_day = (fund_date + pd.Timedelta(days=1)) + BDay(0)
+                # If that's still a holiday, keep adding business days
+                while next_business_day not in features.index:
+                    next_business_day = next_business_day + BDay(1)
+                    # Add time component and check
+                    test_datetime = next_business_day.replace(hour=9, minute=30, second=0, microsecond=0)
+                    if test_datetime in features.index:
+                        next_business_day = test_datetime
+                        break
+                business_datetime = next_business_day.replace(hour=9, minute=30, second=0, microsecond=0)
+            else:
+                # For other dates, use current business day logic
+                next_business_day = fund_date + BDay(0)
+                business_datetime = next_business_day.replace(hour=9, minute=30, second=0, microsecond=0)
+            
+            fund_dates_business.append(business_datetime)
+
+        # Create new DataFrame with business day timestamps
+        calc_fund_df_business = calc_fund_df.copy()
+        calc_fund_df_business.index = pd.DatetimeIndex(fund_dates_business)
+
+        # Merge with business day timestamps
+        features = features.merge(calc_fund_df_business, left_index=True, right_index=True, how='left')
+
+        # Forward fill fundamental data until next fundamental date
+        fund_calc_cols = [col for col in features.columns if col.startswith('Fund_Calc_')]
+        features[fund_calc_cols] = features[fund_calc_cols].ffill()
+
+        # =============================================================================
+        # 5. ADD RATINGS DATA (Time-series - specific dates only)
+        # =============================================================================
+        
+        if 'GradeDate' in self.ratings_df.columns:
+            ratings_clean = self.ratings_df.copy()
+            ratings_clean['date'] = pd.to_datetime(ratings_clean['GradeDate'])
+            ratings_clean.set_index('date', inplace=True)
+            
+            # Add 'Rating_' prefix to rating columns (exclude GradeDate since we used it for index)
+            rating_cols = [col for col in ratings_clean.columns if col != 'GradeDate']
+            ratings_clean = ratings_clean[rating_cols]
+            ratings_clean.columns = [f'Rating_{col}' for col in ratings_clean.columns]
+            
+            # Merge ratings data (NaN for missing dates - NO FORWARD FILL)
+            features = features.merge(ratings_clean, left_index=True, right_index=True, how='left')
+
+        # =============================================================================
+        # 6. FINAL CLEANUP
+        # =============================================================================
+        
+        # Clean up infinite values but DON'T forward fill fundamentals/ratings
+        features = features.replace([np.inf, -np.inf], np.nan)
+        
+        # Only forward/backward fill technical indicators (not fundamentals or ratings)
+        technical_cols = [col for col in features.columns if not (
+            col.startswith('Fund_') or 
+            col.startswith('Rating_') or 
+            col.startswith('Info_')
+        )]
+        
+        features[technical_cols] = features[technical_cols].ffill().bfill()
+        
+        # Sort by date to ensure proper order
+        features = features.sort_index()
+
+        return features
 
 # Usage example
 if __name__ == "__main__":
@@ -346,7 +319,7 @@ if __name__ == "__main__":
     # Test with a ticker
     ticker = "MMM"  # Replace with your ticker
     features_df = fe.create_features(ticker)
-    features_df.to_excel('testing_data/features.xlsx', index=False)
+    features_df.to_excel('testing_data/features.xlsx', index=True)
     
     print(f"Created {len(features_df.columns)} features for {ticker}")
     print(f"Feature columns: {list(features_df.columns)}")
