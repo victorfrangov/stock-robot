@@ -121,7 +121,7 @@ class FeatureEngineer:
         features['High'] = high_series  
         features['Low'] = low_series
         features['Close'] = close_series
-        features['Volume'] = volume_series
+        features['Volume'] = volume_series.round().astype(int)
         
         # Lagged prices (useful for ML models)
         features['Close_1d'] = close_series.shift(1)
@@ -269,10 +269,10 @@ class FeatureEngineer:
 
         # Merge with business day timestamps
         features = features.merge(calc_fund_df_business, left_index=True, right_index=True, how='left')
-
-        # Forward fill fundamental data until next fundamental date
+        features = features.sort_index(ascending=False)
+        # Custom forward fill for fundamental data: for each year, use the previous Dec 31 value
         fund_calc_cols = [col for col in features.columns if col.startswith('Fund_Calc_')]
-        features[fund_calc_cols] = features[fund_calc_cols].ffill()
+        features[fund_calc_cols] = features[fund_calc_cols].bfill().ffill()
 
         # =============================================================================
         # 5. ADD RATINGS DATA (Time-series - specific dates only)
