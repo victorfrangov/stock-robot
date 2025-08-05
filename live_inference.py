@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import yfinance as yf
 from ib_async import *
-from feature_engineering import FeatureEngineer
+from data_processing import FeatureEngineer
 from models import FeedForward, LSTM, Hybrid
 import warnings
 warnings.filterwarnings('ignore')
