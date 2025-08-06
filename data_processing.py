@@ -103,7 +103,7 @@ class DataProcessor:
             
             # Forward fill ratings (they persist until next rating)
             rating_cols = [col for col in features.columns if col.startswith('Rating_')]
-            features[rating_cols] = features[rating_cols].bfill() # could bfill here or just not fill at all
+            features[rating_cols] = features[rating_cols] # could bfill here or just not fill at all
                     
         # =============================================================================
         # FINAL CLEANUP
