@@ -121,13 +121,6 @@ class DataProcessor:
         
         features[technical_cols] = features[technical_cols].ffill().bfill()
         
-        # Remove rows with missing OHLCV data
-        ohlcv_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
-        missing_ohlcv_mask = features[ohlcv_cols].isna().all(axis=1)
-        if missing_ohlcv_mask.sum() > 0:
-            print(f"Removing {missing_ohlcv_mask.sum()} rows with missing OHLCV data")
-            features = features[~missing_ohlcv_mask].copy()
-        
         # Sort by date to ensure proper order
         features = features.sort_index()
         
@@ -139,9 +132,30 @@ class DataProcessor:
 if __name__ == "__main__":
     processor = DataProcessor()
     
-    # Test with a ticker
-    ticker = "MMM"
-    features_df = processor.process_data(ticker)
-    features_df.to_excel('testing_data/features.xlsx', index=True)
+    # Load tickers
+    with open('sp500_tickers.txt', 'r') as f:
+        tickers = [line.strip() for line in f.readlines() if line.strip()]
+        
+    successful = 0
+    failed = 0
     
-    print(f"\nCreated {len(features_df.columns)} total features for {ticker}")
+    for idx, ticker in enumerate(tickers, 1):
+        try:
+            print(f"[{idx}/{len(tickers)}] Processing {ticker}...")
+            features_df = processor.process_data(ticker)
+            
+            # Save to parquet
+            features_df.to_parquet(f'processed_features/{ticker}.parquet', index=True)
+            
+            print(f"✅ [{idx}/{len(tickers)}] {ticker}: {len(features_df.columns)} features, {len(features_df)} rows")
+            successful += 1
+            
+        except Exception as e:
+            print(f"❌ [{idx}/{len(tickers)}] {ticker}: Error - {str(e)}")
+            failed += 1
+            continue
+    
+    print(f"\n🏁 Processing complete!")
+    print(f"✅ Successful: {successful}")
+    print(f"❌ Failed: {failed}")
+    print(f"📁 Files saved to: processed_features/")
