@@ -104,9 +104,9 @@ class Hybrid(nn.Module):
         super(Hybrid, self).__init__()
         
         # 1D CNN for pattern extraction
-        self.conv1 = nn.Conv1d(1, cnn_channels[0], kernel_size=3, padding=1)
+        self.conv1 = nn.Conv1d(input_features, cnn_channels[0], kernel_size=3, padding=1)
         self.conv2 = nn.Conv1d(cnn_channels[0], cnn_channels[1], kernel_size=3, padding=1)
-        self.pool = nn.AdaptiveAvgPool1d(input_features // 2)
+        # self.pool = nn.AvgPool1d(kernel_size=2, stride=2)
         
         # LSTM for temporal modeling
         self.lstm = nn.LSTM(cnn_channels[1], lstm_hidden, batch_first=True)
@@ -121,12 +121,13 @@ class Hybrid(nn.Module):
     
     def forward(self, x):
         # x shape: (batch_size, features) -> (batch_size, 1, features)
-        x = x.unsqueeze(1)
+        # x = x.unsqueeze(1)
+        x = x.transpose(1, 2)
         
         # CNN feature extraction
         x = torch.relu(self.conv1(x))
         x = torch.relu(self.conv2(x))
-        x = self.pool(x)
+        # x = self.pool(x)
         
         # Reshape for LSTM: (batch_size, seq_len, features)
         x = x.transpose(1, 2)
