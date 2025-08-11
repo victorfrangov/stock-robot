@@ -146,7 +146,7 @@ if __name__ == "__main__":
             features_df = processor.process_data(ticker)
             
             # Save to parquet
-            features_df.to_parquet(f'/Volumes/storage/stock-robot-data/processed_features_cleaned/{ticker}.parquet', index=True)
+            features_df.to_parquet(f'processed_features_cleaned/{ticker}.parquet', index=True)
             
             print(f"✅ [{idx}/{len(tickers)}] {ticker}: {len(features_df.columns)} features, {len(features_df)} rows")
             successful += 1

@@ -3,140 +3,132 @@ import torch.nn as nn
 
 class FeedForward(nn.Module):
     """
-    Feed-Forward Neural Network for Stock Price Prediction
+    Configurable MLP with LayerNorm + SiLU.
+    Increase hidden_layers, e.g., [1024, 512, 256] for more capacity.
     """
-    def __init__(self, input_features=48, hidden_layers=[256, 128, 64], dropout=0.3):
+    def __init__(self, input_features, hidden_layers=[1024, 512, 256, 128], dropout=0.2):
         super(FeedForward, self).__init__()
-        
         layers = []
-        prev_size = input_features
-        
-        layers.extend([
-            nn.Linear(prev_size, hidden_layers[0]),
-            nn.BatchNorm1d(hidden_layers[0]),
-            nn.ReLU(),
-            nn.Dropout(dropout)
-        ])
-        prev_size = hidden_layers[0]
-        
-        for hidden_size in hidden_layers[1:]:
+        prev = input_features
+        for h in hidden_layers:
             layers.extend([
-                nn.Linear(prev_size, hidden_size),
-                nn.BatchNorm1d(hidden_size),
-                nn.ReLU(),
+                nn.Linear(prev, h),
+                nn.LayerNorm(h),          # more batch-size stable than BatchNorm
+                nn.SiLU(),                # smoother than ReLU
                 nn.Dropout(dropout)
             ])
-            prev_size = hidden_size
-        
-        layers.append(nn.Linear(prev_size, 1))
-        
+            prev = h
+        layers.append(nn.Linear(prev, 1))
         self.network = nn.Sequential(*layers)
-        
-    #     self.apply(self._init_weights)
-    
-    # def _init_weights(self, module):
-    #     if isinstance(module, nn.Linear):
-    #         torch.nn.init.xavier_uniform_(module.weight)
-    #         module.bias.data.fill_(0.01)
-    
+
     def forward(self, x):
         return self.network(x)
 
 class LSTM(nn.Module):
     """
-    LSTM Network for Time Series Stock Prediction
-    Uses sequence of past days to predict next day
+    LSTM with input LayerNorm + attention head.
+    Tune hidden_size (256–512), num_layers (1–2).
     """
-    def __init__(self, input_features=48, hidden_size=128, num_layers=2, dropout=0.2):
+    def __init__(self, input_features, hidden_size=512, num_layers=2, dropout=0.2, bidirectional=False):
         super(LSTM, self).__init__()
-        
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        
-        # LSTM layers with dropout
+        self.bidirectional = bidirectional
+
+        self.input_ln = nn.LayerNorm(input_features)
         self.lstm = nn.LSTM(
-            input_features, 
-            hidden_size, 
-            num_layers, 
+            input_size=input_features,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
             batch_first=True,
-            dropout=dropout if num_layers > 1 else 0,
-            bidirectional=False
+            dropout=dropout if num_layers > 1 else 0.0,
+            bidirectional=bidirectional
         )
-        
-        # Attention mechanism (optional)
+        lstm_out_dim = hidden_size * (2 if bidirectional else 1)
+
         self.attention = nn.Sequential(
-            nn.Linear(hidden_size, hidden_size // 2),
+            nn.Linear(lstm_out_dim, lstm_out_dim // 2),
             nn.Tanh(),
-            nn.Linear(hidden_size // 2, 1),
+            nn.Linear(lstm_out_dim // 2, 1),
             nn.Softmax(dim=1)
         )
-        
-        # Output layers
-        self.classifier = nn.Sequential(
-            nn.Linear(hidden_size, 64),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(32, 1)
-        )
-    
-    def forward(self, x):
-        # x shape: (batch_size, sequence_length, features)
-        lstm_out, (hidden, cell) = self.lstm(x)
-        
-        # Apply attention to focus on important time steps
-        attention_weights = self.attention(lstm_out)
-        context_vector = torch.sum(attention_weights * lstm_out, dim=1)
-        
-        # Final prediction
-        output = self.classifier(context_vector)
-        return output
 
+        self.classifier = nn.Sequential(
+            nn.Linear(lstm_out_dim, 128),
+            nn.SiLU(),
+            nn.Dropout(0.2),
+            nn.Linear(128, 64),
+            nn.SiLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 1)
+        )
+        
+        hidden_out = hidden_size * (2 if bidirectional else 1)
+        self.head = nn.Sequential(
+            nn.Linear(hidden_out, max(32, hidden_out // 2)),
+            nn.ReLU(inplace=True),
+            nn.Linear(max(32, hidden_out // 2), 1),
+        )
+        
+    def forward(self, x):
+        # x: (batch, seq_len, features)
+        x = self.input_ln(x)
+        x = x.contiguous()
+        lstm_out, _ = self.lstm(x)  # (batch, seq_len, hidden*)
+        attn = self.attention(lstm_out)
+        context = torch.sum(attn * lstm_out, dim=1)
+        out = self.head(context).squeeze(-1)
+        return out
+
+class ResConvBlock(nn.Module):
+    def __init__(self, in_ch, out_ch, k=3, p=1, dropout=0.1, groups=8):
+        super().__init__()
+        self.conv1 = nn.Conv1d(in_ch, out_ch, kernel_size=k, padding=p)
+        self.gn1 = nn.GroupNorm(num_groups=min(groups, out_ch), num_channels=out_ch)
+        self.act = nn.SiLU()
+        self.dropout = nn.Dropout(dropout)
+        self.conv2 = nn.Conv1d(out_ch, out_ch, kernel_size=k, padding=p)
+        self.gn2 = nn.GroupNorm(num_groups=min(groups, out_ch), num_channels=out_ch)
+        self.proj = nn.Conv1d(in_ch, out_ch, 1) if in_ch != out_ch else nn.Identity()
+
+    def forward(self, x):
+        residual = self.proj(x)
+        x = self.act(self.gn1(self.conv1(x)))
+        x = self.dropout(x)
+        x = self.gn2(self.conv2(x))
+        x = self.act(x + residual)
+        return x
 
 class Hybrid(nn.Module):
     """
-    Hybrid Architecture combining CNN and LSTM
-    CNN extracts patterns, LSTM captures temporal dependencies
+    Residual CNN + LSTM. Treat features as channels; convs run over time.
     """
-    def __init__(self, input_features=48, cnn_channels=[64, 32], lstm_hidden=64):
+    def __init__(self, input_features, cnn_channels=[128, 64], lstm_hidden=256, cnn_dropout=0.1):
         super(Hybrid, self).__init__()
-        
-        # 1D CNN for pattern extraction
-        self.conv1 = nn.Conv1d(input_features, cnn_channels[0], kernel_size=3, padding=1)
-        self.conv2 = nn.Conv1d(cnn_channels[0], cnn_channels[1], kernel_size=3, padding=1)
-        # self.pool = nn.AvgPool1d(kernel_size=2, stride=2)
-        
-        # LSTM for temporal modeling
-        self.lstm = nn.LSTM(cnn_channels[1], lstm_hidden, batch_first=True)
-        
-        # Final layers
-        self.fc = nn.Sequential(
-            nn.Linear(lstm_hidden, 32),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(32, 1)
+        # Input: (batch, seq_len, features) -> (batch, features, seq_len)
+        self.conv_block1 = ResConvBlock(input_features, cnn_channels[0], dropout=cnn_dropout)
+        self.conv_block2 = ResConvBlock(cnn_channels[0], cnn_channels[1], dropout=cnn_dropout)
+
+        self.lstm = nn.LSTM(
+            input_size=cnn_channels[1],
+            hidden_size=lstm_hidden,
+            num_layers=1,
+            batch_first=True
         )
-    
+
+        self.fc = nn.Sequential(
+            nn.Linear(lstm_hidden, 128),
+            nn.SiLU(),
+            nn.Dropout(0.2),
+            nn.Linear(128, 1)
+        )
+
     def forward(self, x):
-        # x shape: (batch_size, features) -> (batch_size, 1, features)
-        # x = x.unsqueeze(1)
-        x = x.transpose(1, 2)
-        
-        # CNN feature extraction
-        x = torch.relu(self.conv1(x))
-        x = torch.relu(self.conv2(x))
-        # x = self.pool(x)
-        
-        # Reshape for LSTM: (batch_size, seq_len, features)
-        x = x.transpose(1, 2)
-        
-        # LSTM processing
+        # x: (batch, seq_len, features)
+        x = x.transpose(1, 2)            # (batch, features, seq_len)
+        x = self.conv_block1(x)
+        x = self.conv_block2(x)
+        x = x.transpose(1, 2)            # (batch, seq_len, channels)
         lstm_out, _ = self.lstm(x)
-        
-        # Use last output
         x = lstm_out[:, -1, :]
-        
-        # Final prediction
         return self.fc(x)
