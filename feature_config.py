@@ -7,24 +7,20 @@ class FeatureConfig:
         """Initialize variables to store the data"""
         self.ticker = None
         self.ohlcv_df = None
-        self.fundamentals_df = None
-        self.info_df = None
-        self.ratings_df = None
 
-    def load_data(self, ticker: str) -> None:
+    def load_data(self) -> None:
         """Load all data from files"""
-        self.ticker = ticker
-        self.ohlcv_df = pd.read_excel(f'historical_data/xlsx/{ticker}.xlsx')
-        # self.fundamentals_df = pd.read_excel(f'fundamentals/{ticker}/fundamentals.xlsx')
-        # self.info_df = pd.read_excel(f'fundamentals/{ticker}/info.xlsx')
-        # self.ratings_df = pd.read_excel(f'fundamentals/{ticker}/ratings.xlsx')
+        self.ohlcv_df = pd.read_excel(f'/Volumes/storage/stock-robot-data/historical_data/xlsx/{self.ticker}.xlsx')
         
         # Clean OHLCV data
         self.ohlcv_df['date'] = pd.to_datetime(self.ohlcv_df['date'])
         self.ohlcv_df.set_index('date', inplace=True)
         self.ohlcv_df.sort_index(inplace=True)
     
-    def create_technical_features(self) -> pd.DataFrame:
+    def create_features(self, ticker: str) -> pd.DataFrame:
+        self.ticker = ticker
+        self.load_data()
+        
         """Create all technical features from OHLCV data"""
         # Extract OHLCV arrays
         close = self.ohlcv_df['close'].values.astype(np.float64)
@@ -190,112 +186,3 @@ class FeatureConfig:
         features['Days_Since_Peak'] = features.groupby((peak_20d != peak_20d.shift(1)).cumsum()).cumcount()
 
         return features.replace([np.inf, -np.inf], np.nan)
-    
-    def create_fundamental_features(self) -> pd.DataFrame:
-        """Calculate fundamental features and return as time series"""
-        # Get all date columns (excluding 'Source' and 'index')
-        date_cols = [col for col in self.fundamentals_df.columns if col not in ['Source', 'index']]
-
-        # Helper to get a Series for each fundamental (indexed by date)
-        def get_fund_value(row_name):
-            row = self.fundamentals_df.loc[self.fundamentals_df['index'] == row_name, date_cols]
-            if row.empty:
-                return pd.Series([np.nan] * len(date_cols), index=date_cols)
-            return row.squeeze().astype(np.float64)
-        
-        features = {
-            'return_on_assets': get_fund_value('NetIncome') / get_fund_value('TotalAssets'),
-            'return_on_equity': get_fund_value('NetIncome') / get_fund_value('StockholdersEquity'),
-            'cash_conversion': get_fund_value('OperatingCashFlow') / get_fund_value('NetIncome'),
-            'fcf_margin': get_fund_value('FreeCashFlow') / get_fund_value('TotalRevenue'),
-            'ocf_margin': get_fund_value('OperatingCashFlow') / get_fund_value('TotalRevenue'),
-            'fcf_conversion': get_fund_value('FreeCashFlow') / get_fund_value('NetIncome'),
-            'capex_intensity': abs(get_fund_value('CapitalExpenditure')) / get_fund_value('TotalRevenue'),
-            'reinvestment_rate': abs(get_fund_value('CapitalExpenditure')) / get_fund_value('OperatingCashFlow'),
-            'fcf_after_capex': get_fund_value('OperatingCashFlow') - abs(get_fund_value('CapitalExpenditure')),
-            'current_ratio': get_fund_value('CurrentAssets') / get_fund_value('CurrentLiabilities'),
-            'cash_ratio': get_fund_value('CashAndCashEquivalents') / get_fund_value('CurrentLiabilities'),
-            'debt_to_equity': get_fund_value('TotalDebt') / get_fund_value('StockholdersEquity'),
-            'debt_to_assets': get_fund_value('TotalDebt') / get_fund_value('TotalAssets'),
-            'equity_ratio': get_fund_value('StockholdersEquity') / get_fund_value('TotalAssets'),
-            'tangible_equity_ratio': get_fund_value('TangibleBookValue') / get_fund_value('TotalAssets'),
-            'asset_turnover': get_fund_value('TotalRevenue') / get_fund_value('TotalAssets'),
-            'receivables_turnover': get_fund_value('TotalRevenue') / get_fund_value('AccountsReceivable'),
-            'working_capital_ratio': (get_fund_value('CurrentAssets') - get_fund_value('CurrentLiabilities')) / get_fund_value('TotalAssets'),
-            'book_value_per_share': get_fund_value('StockholdersEquity') / get_fund_value('OrdinarySharesNumber'),
-            'tangible_book_per_share': get_fund_value('TangibleBookValue') / get_fund_value('OrdinarySharesNumber'),
-            'revenue_per_share': get_fund_value('TotalRevenue') / get_fund_value('OrdinarySharesNumber'),
-            'operating_margins': get_fund_value('OperatingIncome') / get_fund_value('TotalRevenue'),
-            'ebitda_margins': get_fund_value('EBITDA') / get_fund_value('TotalRevenue'),
-            'gross_margins': get_fund_value('GrossProfit') / get_fund_value('TotalRevenue'),
-            'net_margins': get_fund_value('NetIncome') / get_fund_value('TotalRevenue')
-        }
-        
-        # Create DataFrame with features as rows, dates as columns
-        funds_features = pd.DataFrame(features).T
-        funds_features.columns = pd.to_datetime(funds_features.columns)
-        funds_features.index.name = "Feature"
-        
-        # Transpose to get dates as index, features as columns (time series format)
-        funds_features_ts = funds_features.T
-        funds_features_ts.columns = [f'Fund_Calc_{col}' for col in funds_features_ts.columns]
-        
-        return funds_features_ts
-    
-    def create_info_features(self) -> pd.DataFrame:
-        """Create info features as single-row DataFrame"""
-        info_dict = dict(zip(self.info_df.iloc[:, 0], self.info_df.iloc[:, 1]))
-        
-        # Market data from info (broadcast to all dates as context)
-        info_features = {
-            'Info_enterprise_value': info_dict.get('enterpriseValue', 0),
-            'Info_market_cap': info_dict.get('marketCap', 0),
-            'Info_trailing_pe': info_dict.get('trailingPE', 0),
-            'Info_forward_pe': info_dict.get('forwardPE', 0),
-            'Info_shares_short': info_dict.get('sharesShort', 0),
-            'Info_short_ratio': info_dict.get('shortRatio', 0),
-            'Info_price_to_book': info_dict.get('priceToBook', 0),
-            'Info_trailing_eps': info_dict.get('trailingEps', 0),
-            'Info_forward_eps': info_dict.get('forwardEps', 0),
-            'Info_target_high': info_dict.get('targetHighPrice', 0),
-            'Info_target_low': info_dict.get('targetLowPrice', 0),
-            'Info_target_mean': info_dict.get('targetMeanPrice', 0),
-            'Info_target_median': info_dict.get('targetMedianPrice', 0),
-            'Info_earnings_growth': info_dict.get('earningsGrowth', 0),
-            'Info_revenue_growth': info_dict.get('revenueGrowth', 0),
-            'Info_current_price': info_dict.get('currentPrice', 0)
-        }
-        
-        # Return as single-row DataFrame
-        return pd.DataFrame([info_features])
-    
-    def create_ratings_features(self) -> pd.DataFrame:
-        """Create ratings features as time series"""
-        if 'GradeDate' not in self.ratings_df.columns:
-            # Return empty DataFrame if no ratings data
-            return pd.DataFrame()
-        
-        ratings_clean = self.ratings_df.copy()
-        ratings_clean['date'] = pd.to_datetime(ratings_clean['GradeDate'])
-        ratings_clean.set_index('date', inplace=True)
-        
-        # Add 'Rating_' prefix to rating columns (exclude GradeDate since we used it for index)
-        rating_cols = [col for col in ratings_clean.columns if col != 'GradeDate']
-        ratings_clean.columns = [f'Rating_{col}' if col in rating_cols else col for col in ratings_clean.columns]
-        
-        return ratings_clean
-    
-    def create_all_features(self, ticker: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-        """Create all features and return 3 separate DataFrames
-        Returns:
-            tuple: (technical_features, fundamental_features, info_features, ratings_features)
-        """
-        self.load_data(ticker)
-        
-        technical_features = self.create_technical_features()
-        # fundamental_features = self.create_fundamental_features()
-        # info_features = self.create_info_features()
-        # ratings_features = self.create_ratings_features()
-        
-        # return technical_features, fundamental_features, info_features, ratings_features
-        return technical_features, None, None, None

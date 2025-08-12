@@ -2,34 +2,30 @@ import torch
 import torch.nn as nn
 
 class FeedForward(nn.Module):
-    """
-    Configurable MLP with LayerNorm + SiLU.
-    Increase hidden_layers, e.g., [1024, 512, 256] for more capacity.
-    """
-    def __init__(self, input_features, hidden_layers=[1024, 512, 256, 128], dropout=0.2):
+    def __init__(self, input_features, hidden_layers=[1024, 512, 256, 128], dropout=0.2, num_classes=3):
         super(FeedForward, self).__init__()
         layers = []
         prev = input_features
         for h in hidden_layers:
             layers.extend([
                 nn.Linear(prev, h),
-                nn.LayerNorm(h),          # more batch-size stable than BatchNorm
-                nn.SiLU(),                # smoother than ReLU
+                nn.LayerNorm(h),
+                nn.SiLU(),
                 nn.Dropout(dropout)
             ])
             prev = h
-        layers.append(nn.Linear(prev, 1))
+        layers.append(nn.Linear(prev, num_classes))  # Changed from 1 to num_classes
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.network(x)
+        return self.network(x)  # Returns logits, not squeezed
 
 class LSTM(nn.Module):
     """
     LSTM with input LayerNorm + attention head.
     Tune hidden_size (256–512), num_layers (1–2).
     """
-    def __init__(self, input_features, hidden_size=512, num_layers=2, dropout=0.2, bidirectional=False):
+    def __init__(self, input_features, hidden_size=512, num_layers=2, dropout=0.2, bidirectional=False, num_classes=3):
         super(LSTM, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -67,7 +63,7 @@ class LSTM(nn.Module):
         self.head = nn.Sequential(
             nn.Linear(hidden_out, max(32, hidden_out // 2)),
             nn.ReLU(inplace=True),
-            nn.Linear(max(32, hidden_out // 2), 1),
+            nn.Linear(max(32, hidden_out // 2), num_classes),
         )
         
     def forward(self, x):
@@ -77,7 +73,7 @@ class LSTM(nn.Module):
         lstm_out, _ = self.lstm(x)  # (batch, seq_len, hidden*)
         attn = self.attention(lstm_out)
         context = torch.sum(attn * lstm_out, dim=1)
-        out = self.head(context).squeeze(-1)
+        out = self.head(context)
         return out
 
 class ResConvBlock(nn.Module):
