@@ -48,16 +48,6 @@ class LSTM(nn.Module):
             nn.Linear(lstm_out_dim // 2, 1),
             nn.Softmax(dim=1)
         )
-
-        self.classifier = nn.Sequential(
-            nn.Linear(lstm_out_dim, 128),
-            nn.SiLU(),
-            nn.Dropout(0.2),
-            nn.Linear(128, 64),
-            nn.SiLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, 1)
-        )
         
         hidden_out = hidden_size * (2 if bidirectional else 1)
         self.head = nn.Sequential(
@@ -99,7 +89,7 @@ class Hybrid(nn.Module):
     """
     Residual CNN + LSTM. Treat features as channels; convs run over time.
     """
-    def __init__(self, input_features, cnn_channels=[128, 64], lstm_hidden=256, cnn_dropout=0.1):
+    def __init__(self, input_features, cnn_channels=[128, 64], lstm_hidden=256, cnn_dropout=0.1, num_classes=3):
         super(Hybrid, self).__init__()
         # Input: (batch, seq_len, features) -> (batch, features, seq_len)
         self.conv_block1 = ResConvBlock(input_features, cnn_channels[0], dropout=cnn_dropout)
@@ -116,7 +106,7 @@ class Hybrid(nn.Module):
             nn.Linear(lstm_hidden, 128),
             nn.SiLU(),
             nn.Dropout(0.2),
-            nn.Linear(128, 1)
+            nn.Linear(128, num_classes)
         )
 
     def forward(self, x):

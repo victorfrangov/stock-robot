@@ -14,7 +14,7 @@ class DataProcessor:
         
         # Start with technical features as base
         features = technical_features.copy()
-        # features = features.iloc[1300:] # Remove null values before saving the files to save on space.
+        features = features.iloc[1300:] # Remove null values before saving the files to save on space.
         features = features.sort_index()
         
         print(f"\nFinal dataset: {features.shape}")
