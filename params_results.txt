@@ -1,0 +1,139 @@
+Test 1
+
+training_data = prep_training_data(
+    ml_data,
+    sequence_length=16,
+    test_size=0.2,
+    neutral_band=(0.45, 0.55)
+)
+
+balanced_sampler : on
+crossentropyloss weights: off
+
+Results:
+train counts:  [114879  25526 114852] percent:  [45.00523002 10.00011753 44.99465245]
+Epoch   0: Train Loss: 1.077139, Test Loss: 1.069888, Accuracy: 35.3%, Lr: 8.150e-05
+Epoch   1: Train Loss: 1.071690, Test Loss: 1.083839, Accuracy: 32.0%, Lr: 1.988e-04
+Epoch   2: Train Loss: 1.069707, Test Loss: 1.079209, Accuracy: 33.1%, Lr: 3.717e-04
+Epoch   3: Train Loss: 1.065457, Test Loss: 1.072839, Accuracy: 32.6%, Lr: 5.702e-04
+Epoch   4: Train Loss: 1.054700, Test Loss: 1.080235, Accuracy: 34.7%, Lr: 7.600e-04
+Epoch   5: Train Loss: 1.035370, Test Loss: 1.081515, Accuracy: 35.0%, Lr: 9.084e-04
+Epoch   6: Train Loss: 0.998176, Test Loss: 1.123223, Accuracy: 33.9%, Lr: 9.895e-04
+Epoch   7: Train Loss: 0.938911, Test Loss: 1.154074, Accuracy: 34.8%, Lr: 9.997e-04
+Epoch   8: Train Loss: 0.855954, Test Loss: 1.171515, Accuracy: 38.6%, Lr: 9.969e-04
+Epoch   9: Train Loss: 0.772041, Test Loss: 1.242921, Accuracy: 38.5%, Lr: 9.915e-04
+Epoch  10: Train Loss: 0.694993, Test Loss: 1.312308, Accuracy: 38.8%, Lr: 9.834e-04
+Epoch  11: Train Loss: 0.631094, Test Loss: 1.384147, Accuracy: 40.1%, Lr: 9.726e-04 -> Overfits here
+Epoch  12: Train Loss: 0.573947, Test Loss: 1.490978, Accuracy: 40.4%, Lr: 9.592e-04
+Epoch  13: Train Loss: 0.522018, Test Loss: 1.558476, Accuracy: 40.5%, Lr: 9.434e-04
+Epoch  14: Train Loss: 0.481613, Test Loss: 1.623184, Accuracy: 41.0%, Lr: 9.251e-04
+Epoch  15: Train Loss: 0.443591, Test Loss: 1.653784, Accuracy: 41.4%, Lr: 9.045e-04
+Epoch  16: Train Loss: 0.409181, Test Loss: 1.732942, Accuracy: 41.4%, Lr: 8.817e-04
+Epoch  17: Train Loss: 0.380043, Test Loss: 1.815756, Accuracy: 41.3%, Lr: 8.568e-04
+Epoch  18: Train Loss: 0.353401, Test Loss: 1.863958, Accuracy: 41.6%, Lr: 8.300e-04
+Epoch  19: Train Loss: 0.325800, Test Loss: 1.986280, Accuracy: 41.7%, Lr: 8.013e-04
+Epoch  20: Train Loss: 0.302499, Test Loss: 2.073800, Accuracy: 42.3%, Lr: 7.710e-04
+Epoch  21: Train Loss: 0.280585, Test Loss: 2.069211, Accuracy: 42.4%, Lr: 7.392e-04
+Epoch  22: Train Loss: 0.259046, Test Loss: 2.219399, Accuracy: 42.6%, Lr: 7.062e-04
+Epoch  23: Train Loss: 0.238131, Test Loss: 2.276978, Accuracy: 42.2%, Lr: 6.720e-04
+Epoch  24: Train Loss: 0.218201, Test Loss: 2.360318, Accuracy: 42.6%, Lr: 6.368e-04
+Epoch  25: Train Loss: 0.200688, Test Loss: 2.421045, Accuracy: 42.7%, Lr: 6.009e-04
+Epoch  26: Train Loss: 0.183428, Test Loss: 2.565667, Accuracy: 42.6%, Lr: 5.645e-04
+
+Test 2
+
+training_data = prep_training_data(
+    ml_data,
+    sequence_length=16,
+    test_size=0.2, # play with these values
+    neutral_band=(0.40, 0.60)
+)
+
+balanced_sampler : on
+weights: on
+
+-------------------------
+train counts:  [102113  51057 102087] percent:  [40.00399597 20.00219387 39.99381016]
+Epoch   0: Train Loss: 1.037347, Test Loss: 1.156792, Accuracy: 19.6%, Lr: 8.150e-05
+Epoch   1: Train Loss: 1.035337, Test Loss: 1.153359, Accuracy: 19.6%, Lr: 1.988e-04
+Epoch   2: Train Loss: 1.034992, Test Loss: 1.154425, Accuracy: 19.6%, Lr: 3.717e-04
+Epoch   3: Train Loss: 1.034119, Test Loss: 1.158218, Accuracy: 20.0%, Lr: 5.702e-04
+Epoch   4: Train Loss: 1.033667, Test Loss: 1.153994, Accuracy: 19.7%, Lr: 7.600e-04
+Epoch   5: Train Loss: 1.032249, Test Loss: 1.157343, Accuracy: 19.9%, Lr: 9.084e-04
+Epoch   6: Train Loss: 1.028645, Test Loss: 1.164619, Accuracy: 21.0%, Lr: 9.895e-04
+Epoch   7: Train Loss: 1.021304, Test Loss: 1.170065, Accuracy: 22.6%, Lr: 9.997e-04
+Epoch   8: Train Loss: 1.009029, Test Loss: 1.181566, Accuracy: 24.4%, Lr: 9.969e-04
+Epoch   9: Train Loss: 0.994044, Test Loss: 1.191381, Accuracy: 27.0%, Lr: 9.915e-04
+Epoch  10: Train Loss: 0.979743, Test Loss: 1.203795, Accuracy: 28.1%, Lr: 9.834e-04
+Epoch  11: Train Loss: 0.966923, Test Loss: 1.208786, Accuracy: 29.3%, Lr: 9.726e-04
+Epoch  12: Train Loss: 0.956335, Test Loss: 1.221224, Accuracy: 30.0%, Lr: 9.592e-04
+Epoch  13: Train Loss: 0.946047, Test Loss: 1.228977, Accuracy: 30.7%, Lr: 9.434e-04
+Epoch  14: Train Loss: 0.936460, Test Loss: 1.237229, Accuracy: 31.3%, Lr: 9.251e-04
+Epoch  15: Train Loss: 0.928037, Test Loss: 1.238259, Accuracy: 32.6%, Lr: 9.045e-04
+Epoch  16: Train Loss: 0.921202, Test Loss: 1.240332, Accuracy: 33.8%, Lr: 8.817e-04
+Epoch  17: Train Loss: 0.914332, Test Loss: 1.241904, Accuracy: 33.7%, Lr: 8.568e-04
+Epoch  18: Train Loss: 0.908441, Test Loss: 1.249982, Accuracy: 33.8%, Lr: 8.300e-04
+Epoch  19: Train Loss: 0.902524, Test Loss: 1.254790, Accuracy: 34.4%, Lr: 8.013e-04
+Epoch  20: Train Loss: 0.896996, Test Loss: 1.261100, Accuracy: 34.6%, Lr: 7.710e-04
+Epoch  21: Train Loss: 0.892226, Test Loss: 1.259632, Accuracy: 34.8%, Lr: 7.392e-04
+Epoch  22: Train Loss: 0.886802, Test Loss: 1.267903, Accuracy: 35.0%, Lr: 7.062e-04
+Epoch  23: Train Loss: 0.882722, Test Loss: 1.268280, Accuracy: 35.4%, Lr: 6.720e-04
+Epoch  24: Train Loss: 0.878146, Test Loss: 1.275836, Accuracy: 35.2%, Lr: 6.368e-04
+Epoch  25: Train Loss: 0.873638, Test Loss: 1.274053, Accuracy: 36.2%, Lr: 6.009e-04 -> Overfits
+Epoch  26: Train Loss: 0.869963, Test Loss: 1.278556, Accuracy: 35.8%, Lr: 5.645e-04
+Epoch  27: Train Loss: 0.865715, Test Loss: 1.279390, Accuracy: 36.1%, Lr: 5.277e-04
+Epoch  28: Train Loss: 0.862060, Test Loss: 1.280681, Accuracy: 35.9%, Lr: 4.908e-04
+Epoch  29: Train Loss: 0.859616, Test Loss: 1.287465, Accuracy: 36.2%, Lr: 4.539e-04
+Epoch  30: Train Loss: 0.855535, Test Loss: 1.290543, Accuracy: 36.6%, Lr: 4.172e-04
+Epoch  31: Train Loss: 0.852680, Test Loss: 1.289973, Accuracy: 36.6%, Lr: 3.810e-04
+
+
+0.40/0.60
+weights no label smoothing
+balanced balanced_sampler
+
+2️⃣ TRAINING LSTM NETWORK
+-------------------------
+train counts:  [102113  51057 102087] percent:  [40.00399597 20.00219387 39.99381016]
+Epoch   0: Train Loss: 1.015170, Test Loss: 1.137940, Accuracy: 23.3%, Lr: 1.988e-04
+Epoch   1: Train Loss: 1.008616, Test Loss: 1.135069, Accuracy: 25.6%, Lr: 5.702e-04
+Epoch   2: Train Loss: 1.012824, Test Loss: 1.127680, Accuracy: 23.9%, Lr: 9.084e-04
+Epoch   3: Train Loss: 1.007282, Test Loss: 1.133843, Accuracy: 25.0%, Lr: 9.997e-04
+Epoch   4: Train Loss: 1.001461, Test Loss: 1.135044, Accuracy: 26.2%, Lr: 9.915e-04
+Epoch   5: Train Loss: 0.992667, Test Loss: 1.135890, Accuracy: 27.2%, Lr: 9.726e-04
+Epoch   6: Train Loss: 0.974836, Test Loss: 1.143332, Accuracy: 30.5%, Lr: 9.434e-04
+Epoch   7: Train Loss: 0.938220, Test Loss: 1.196476, Accuracy: 30.0%, Lr: 9.045e-04
+Epoch   8: Train Loss: 0.879925, Test Loss: 1.243480, Accuracy: 32.2%, Lr: 8.568e-04
+Epoch   9: Train Loss: 0.808154, Test Loss: 1.335378, Accuracy: 32.8%, Lr: 8.013e-04
+Epoch  10: Train Loss: 0.728373, Test Loss: 1.466032, Accuracy: 33.3%, Lr: 7.392e-04
+Epoch  11: Train Loss: 0.651044, Test Loss: 1.604598, Accuracy: 33.7%, Lr: 6.720e-04
+Epoch  12: Train Loss: 0.579671, Test Loss: 1.752039, Accuracy: 34.5%, Lr: 6.009e-04
+Epoch  13: Train Loss: 0.509576, Test Loss: 1.896549, Accuracy: 34.9%, Lr: 5.277e-04
+Epoch  14: Train Loss: 0.447767, Test Loss: 2.042640, Accuracy: 36.1%, Lr: 4.538e-04
+Epoch  15: Train Loss: 0.384376, Test Loss: 2.301702, Accuracy: 36.1%, Lr: 3.810e-04
+Epoch  16: Train Loss: 0.332263, Test Loss: 2.591909, Accuracy: 36.2%, Lr: 3.108e-04
+Epoch  17: Train Loss: 0.287170, Test Loss: 2.820036, Accuracy: 36.7%, Lr: 2.447e-04
+Epoch  18: Train Loss: 0.242077, Test Loss: 3.154512, Accuracy: 36.7%, Lr: 1.841e-04
+Epoch  19: Train Loss: 0.208782, Test Loss: 3.420149, Accuracy: 36.8%, Lr: 1.305e-04
+Epoch  20: Train Loss: 0.179317, Test Loss: 3.690917, Accuracy: 37.0%, Lr: 8.490e-05
+Epoch  21: Train Loss: 0.159031, Test Loss: 3.962791, Accuracy: 37.2%, Lr: 4.837e-05
+Epoch  22: Train Loss: 0.148076, Test Loss: 4.036598, Accuracy: 37.2%, Lr: 2.170e-05
+Epoch  23: Train Loss: 0.137556, Test Loss: 4.106508, Accuracy: 37.3%, Lr: 5.455e-06
+Epoch  24: Train Loss: 0.136780, Test Loss: 4.112514, Accuracy: 37.2%, Lr: 4.000e-09
+🔍 Debug - Unique predictions: [0 1 2]
+🔍 Debug - Unique actuals: [0 1 2]
+🔍 Debug - Predictions shape: (63760,)
+🔍 Debug - Actuals shape: (63760,)
+📊 Final Metrics - Accuracy: 37.25%, F1-Score: 0.3724
+
+📋 Classification Report:
+              precision    recall  f1-score   support
+
+        Down       0.41      0.41      0.41     25944
+     Neutral       0.24      0.24      0.24     12506
+          Up       0.40      0.40      0.40     25310
+
+    accuracy                           0.37     63760
+   macro avg       0.35      0.35      0.35     63760
+weighted avg       0.37      0.37      0.37     63760
+
