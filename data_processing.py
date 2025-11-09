@@ -14,7 +14,7 @@ class DataProcessor:
         
         # Start with technical features as base
         features = technical_features.copy()
-        features = features.iloc[1300:] # Remove null values before saving the files to save on space.
+        # features = features.iloc[1300:] # Remove null values before saving the files to save on space.
         features = features.sort_index()
         
         print(f"\nFinal dataset: {features.shape}")
@@ -38,7 +38,7 @@ if __name__ == "__main__":
             features_df = processor.process_data(ticker)
             
             # Save to parquet
-            features_df.to_parquet(f'/Volumes/storage/stock-robot-data/processed_features_cleaned2/{ticker}.parquet', index=True)
+            features_df.to_parquet(f'processed_features_cleaned_compact/{ticker}.parquet', index=True)
             
             print(f"✅ [{idx}/{len(tickers)}] {ticker}: {len(features_df.columns)} features, {len(features_df)} rows")
             successful += 1
