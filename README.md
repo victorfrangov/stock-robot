@@ -123,6 +123,36 @@ Everything the robot downloads or produces lives in `data/` (gitignored):
 curve and feature importances. `data/state/journal.sqlite` holds the trading
 history.
 
+## Backtest results (walk-forward, out-of-sample, after costs)
+
+Run on 2026-09-22 with the default config. Model retrained every 6 months; Jan 2012 – Sep 2026.
+
+| | CAGR | Vol | Sharpe | Max DD | Rank IC | Turnover/yr |
+|---|---|---|---|---|---|---|
+| **Ensemble (GBM 70% + NN 30%)** | **15.5%** | 17.4% | **0.82** | **−30.5%** | **0.025** | 53× |
+| GBM only | 15.5% | 18.5% | 0.78 | −33.6% | 0.022 | 52× |
+| NN only | 14.4% | 16.4% | 0.80 | −27.1% | 0.022 | 49× |
+| SPY | 15.2% | 16.5% | 0.83 | −33.7% | | |
+| Equal-weight S&P 500 | 14.0% | 17.3% | 0.74 | −40.0% | | |
+
+What these numbers mean:
+
+* The model has a small but real signal: rank IC ≈ 0.025, positive in about two-thirds of half-years.
+* It beats the equal-weight S&P and roughly matches SPY with a smaller drawdown.
+* It does **not** beat SPY by much: 2012–2026 was dominated by mega-cap tech.
+* It lagged SPY in 2014–2019 and caught up after 2020.
+
+What was tried and rejected (see git history):
+
+* Raw interest-rate and VIX levels as features. The trees used them to memorize eras, giving IC 0.016 and a −40% drawdown.
+* A 21-day horizon. IC fell to 0.005.
+
+Ideas worth testing next:
+
+* Smooth scores over a few days to cut the 53× turnover. Costs are about 2.9%/yr.
+* Earnings-date features.
+* A larger `top_k`.
+
 ## Caveats
 
 * Backtests flatter. About 300 of the historical members were delisted and Yahoo no longer serves their prices, so some survivorship bias remains. Treat the backtest as an upper bound.
