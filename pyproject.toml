@@ -19,6 +19,7 @@ dependencies = [
     "scikit-learn>=1.4",
     "ib_async>=1.0",
     "matplotlib>=3.8",
+    "exchange_calendars>=4.5",
 ]
 
 [project.optional-dependencies]

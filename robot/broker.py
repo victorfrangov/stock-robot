@@ -92,15 +92,21 @@ class Broker:
     def portfolio(self):
         return [p for p in self.ib.portfolio(self.account) if p.contract.secType == "STK"]
 
-    def cancel_robot_orders(self) -> int:
-        n = 0
-        for trade in self.ib.openTrades():
-            if trade.order.orderRef == ORDER_REF:
-                self.ib.cancelOrder(trade.order)
-                n += 1
-        if n:
-            self.ib.sleep(2)
-        return n
+    def cancel_robot_orders(self, timeout: float = 15) -> int:
+        """Cancel every open stock-robot order, from any client id, and wait until they're gone."""
+        self.ib.reqAllOpenOrders()
+        self.ib.sleep(1)
+        mine = [t for t in self.ib.openTrades() if t.order.orderRef == ORDER_REF]
+        for trade in mine:
+            self.ib.cancelOrder(trade.order)
+        waited = 0.0
+        while mine and waited < timeout and not all(t.isDone() for t in mine):
+            self.ib.sleep(0.5)
+            waited += 0.5
+        still = [t for t in mine if not t.isDone()]
+        if still:
+            raise TradingHalted(f"{len(still)} old robot orders would not cancel - not placing new ones")
+        return len(mine)
 
     def order_style(self) -> str:
         style = self.cfg.broker.order_type

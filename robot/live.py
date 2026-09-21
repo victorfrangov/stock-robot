@@ -8,6 +8,7 @@ from datetime import datetime
 
 import pandas as pd
 
+from robot import calendar
 from robot.broker import ET, Broker
 from robot.config import Config
 from robot.data import universe
@@ -56,30 +57,64 @@ def plan_orders(cfg: Config, targets: pd.Series, positions: dict[str, float], pr
     return sorted(orders, key=lambda o: o["qty"])  # sells (negative) first
 
 
+def _managed(cfg: Config, journal: Journal, positions: dict[str, float]) -> dict[str, float]:
+    """Positions the robot is allowed to touch: its own, unless manage_all_positions is on."""
+    if cfg.broker.get("manage_all_positions", False):
+        return positions
+    owned = set(journal.get("owned", []))
+    return {t: q for t, q in positions.items() if t in owned}
+
+
+def _price_mismatches(broker: Broker, prices: pd.Series, tol: float = 0.25) -> set[str]:
+    """Held names whose IBKR price disagrees with our data by >25% (a split not yet in our data)."""
+    bad = set()
+    for item in broker.portfolio():
+        t = item.contract.symbol.replace(" ", "-")
+        ours, theirs = float(prices.get(t, float("nan"))), float(item.marketPrice or float("nan"))
+        if math.isfinite(ours) and math.isfinite(theirs) and theirs > 0 and abs(theirs / ours - 1) > tol:
+            bad.add(t)
+    return bad
+
+
 def run_trade(cfg: Config, dry_run: bool = False, force_rebalance: bool = False, refresh_data: bool = True) -> dict:
     journal = Journal(cfg)
     run_id = journal.start_run("trade-dry" if dry_run else "trade")
     try:
         check_kill_switch(cfg)
+        now = datetime.now(ET)
+        if not dry_run and not force_rebalance and not calendar.is_session(now.date()) and now.hour < 16:
+            msg = f"{now.date()} is not an NYSE session - nothing to do"
+            journal.end_run(run_id, "ok", msg)
+            return {"asof": None, "risk_off": None, "orders": [], "note": msg}
+        expected = calendar.last_completed_session(now)
         if refresh_data:
             update_all(cfg, current_only=True, skip_fundamentals=True)
         prices = load_prices(cfg)
+        prices = prices[prices["date"] <= expected]  # never use a partial intraday bar
         model = load_model(cfg)
-        asof, scored = score_latest(cfg, model)
-        today = datetime.now(ET).date()
-        if (pd.Timestamp(today) - asof).days > 4:
-            raise TradingHalted(f"latest price data is from {asof.date()} - refusing to trade on stale data")
+        asof, scored = score_latest(cfg, model, cutoff=expected)
+        if asof != expected:
+            raise TradingHalted(f"latest price data is from {asof.date()} but the last session was "
+                                f"{expected.date()} - refusing to trade on stale data")
 
         last_px = prices[prices["date"] == asof].set_index("ticker")["close"]
         risk_off = _risk_off(prices)
         summary = {"asof": str(asof.date()), "model": model.meta.get("trained_at"), "risk_off": risk_off}
 
         with Broker(cfg) as broker:
+            if not dry_run:
+                cancelled = broker.cancel_robot_orders()  # before reading positions: no double orders
+                if cancelled:
+                    log.info("cancelled %d stale robot orders", cancelled)
             net_liq = broker.net_liquidation()
-            positions = broker.positions()
-            risk = evaluate(cfg, journal, net_liq, str(today))
+            all_positions = broker.positions()
+            positions = _managed(cfg, journal, all_positions)
+            unmanaged = sorted(set(all_positions) - set(positions))
+            risk = evaluate(cfg, journal, net_liq, str(now.date()), persist=not dry_run)
             summary.update(account=broker.account, net_liq=net_liq, positions=len(positions),
-                           drawdown_pct=round(risk.drawdown_pct, 2), risk=risk.reasons)
+                           unmanaged=unmanaged, drawdown_pct=round(risk.drawdown_pct, 2), risk=risk.reasons)
+            if unmanaged:
+                log.info("leaving %d positions the robot didn't open: %s", len(unmanaged), unmanaged)
 
             since = _trading_days_since(prices, journal.get("last_rebalance"))
             due = force_rebalance or not positions or since >= cfg.portfolio.rebalance_days or risk.flatten
@@ -91,7 +126,8 @@ def run_trade(cfg: Config, dry_run: bool = False, force_rebalance: bool = False,
                                          scored.set_index("ticker")["raw_price"], risk_off)
             sig = scored[["ticker", "score", "rank"]].copy()
             sig["target_weight"] = sig["ticker"].map(targets).fillna(0.0)
-            journal.record_signals(str(asof.date()), sig)
+            if not dry_run:
+                journal.record_signals(str(asof.date()), sig)
             summary["targets"] = targets.round(4).to_dict()
 
             if not due:
@@ -101,16 +137,18 @@ def run_trade(cfg: Config, dry_run: bool = False, force_rebalance: bool = False,
                 return {**summary, "orders": [], "note": msg}
 
             orders = plan_orders(cfg, targets, positions, last_px, net_liq, risk.allow_buys)
+            suspect = _price_mismatches(broker, last_px)
+            for o in orders:
+                if o["ticker"] in suspect and not o["reject"]:
+                    o["reject"] = "IBKR price differs >25% from our data (split?) - skipped this run"
             summary["orders"] = orders
             if dry_run:
                 journal.end_run(run_id, "ok", f"dry run: {len(orders)} orders planned")
                 return summary
 
             style = broker.order_style()
-            cancelled = broker.cancel_robot_orders()
-            if cancelled:
-                log.info("cancelled %d stale robot orders", cancelled)
             placed = []
+            owned = set(journal.get("owned", []))
             for o in orders:
                 if o["reject"]:
                     log.warning("skip %s %+d: %s", o["ticker"], o["qty"], o["reject"])
@@ -123,11 +161,16 @@ def run_trade(cfg: Config, dry_run: bool = False, force_rebalance: bool = False,
                                            order_type=style, est_price=o["price"], status="submitted",
                                            ib_order_id=trade.order.orderId)
                 placed.append((row, trade))
+                if o["target"] > 0:
+                    owned.add(o["ticker"])
+                else:
+                    owned.discard(o["ticker"])
+            journal.set("owned", sorted(owned))
+            journal.set("last_rebalance", str(asof.date()))
             broker.ib.sleep(2)
             fills = broker.wait([t for _, t in placed], seconds=90 if style == "adaptive" else 5)
             for (row, _), f in zip(placed, fills):
                 journal.update_order(row, f.status, f.filled, f.avg_price)
-            journal.set("last_rebalance", str(asof.date()))
             summary["style"] = style
             summary["fills"] = [f.__dict__ for f in fills]
         journal.end_run(run_id, "ok", f"{len(placed)} orders placed ({style})")
@@ -143,7 +186,9 @@ def flatten(cfg: Config) -> list:
     with Broker(cfg) as broker:
         broker.cancel_robot_orders()
         style = broker.order_style()
-        trades = [broker.place(t, -int(q), style) for t, q in broker.positions().items() if int(q) != 0]
+        held = _managed(cfg, journal, broker.positions())
+        trades = [broker.place(t, -int(q), style) for t, q in held.items() if int(q) != 0]
+        journal.set("owned", [])
         fills = broker.wait(trades, 60 if style == "adaptive" else 5)
     journal.end_run(run_id, "ok", f"flatten: {len(trades)} orders")
     return fills

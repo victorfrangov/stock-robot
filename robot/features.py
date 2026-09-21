@@ -84,7 +84,7 @@ def _split_factor_after(splits: pd.Series, when: pd.Series) -> np.ndarray:
         return np.ones(len(when))
     logs = np.log(s.to_numpy())
     after = np.concatenate([np.cumsum(logs[::-1])[::-1], [0.0]])  # after[i] = sum logs[i:]
-    idx = np.searchsorted(s.index.to_numpy(), when.to_numpy(dtype="datetime64[ns]"), side="right")
+    idx = np.searchsorted(s.index.to_numpy(dtype="datetime64[ns]"), when.to_numpy(dtype="datetime64[ns]"), side="right")
     out = np.exp(after[idx])
     out[pd.isna(when).to_numpy()] = np.nan
     return out
@@ -99,15 +99,17 @@ def fundamental_features(cfg: Config, prices: pd.DataFrame, o: dict[str, pd.Data
     splits = wide(prices, "splits").reindex(dates).fillna(0.0)
     names = ["ey", "sy", "bm", "fcfy", "roe", "roa", "gross_margin", "op_margin", "leverage",
              "accruals", "rev_growth", "ni_growth", "days_since_filing", "log_mcap", "cash_to_assets"]
-    out = {n: pd.DataFrame(np.nan, index=dates, columns=tickers, dtype="float64") for n in names}
-    day = pd.DataFrame({"date": dates})
+    cols: dict[str, dict[str, pd.Series]] = {n: {} for n in names}
+    day = pd.DataFrame({"date": dates.astype("datetime64[ns]")})
     for t, snap in snaps.items():
         if t not in o["close"]:
             continue
         s = snap.copy()
         s.index = s.index + pd.Timedelta(days=1)  # tradable the session after filing
         s = s.reset_index(names="avail").sort_values("avail")
+        s["avail"] = s["avail"].astype("datetime64[ns]")
         d = pd.merge_asof(day, s, left_on="date", right_on="avail").set_index("date")
+        d.index = dates  # merge_asof keeps the left order
         px = o["split_close"][t]
         shares = d.get("shares")
         if shares is None:
@@ -116,22 +118,28 @@ def fundamental_features(cfg: Config, prices: pd.DataFrame, o: dict[str, pd.Data
         mcap = (px * shares * factor).where(lambda x: x > 0)
         get = lambda k: d[k] if k in d else pd.Series(np.nan, index=dates)  # noqa: E731
         equity, assets = get("equity"), get("assets")
-        out["ey"][t] = get("net_income_ttm") / mcap
-        out["sy"][t] = get("revenue_ttm") / mcap
-        out["bm"][t] = equity / mcap
-        out["fcfy"][t] = (get("cfo_ttm") - get("capex_ttm").fillna(0)) / mcap
-        out["roe"][t] = get("net_income_ttm") / equity.where(equity > 0)
-        out["roa"][t] = get("net_income_ttm") / assets
-        out["gross_margin"][t] = get("gross_profit_ttm") / get("revenue_ttm")
-        out["op_margin"][t] = get("op_income_ttm") / get("revenue_ttm")
-        out["leverage"][t] = get("liabilities") / assets
-        out["accruals"][t] = (get("net_income_ttm") - get("cfo_ttm")) / assets
-        out["rev_growth"][t] = get("revenue_growth")
-        out["ni_growth"][t] = get("net_income_growth")
-        out["days_since_filing"][t] = (dates - pd.to_datetime(d["filing_date"])).days
-        out["log_mcap"][t] = np.log(mcap)
-        out["cash_to_assets"][t] = get("cash") / assets
-    return out
+        ni, rev = get("net_income_ttm"), get("revenue_ttm")
+        vals = {
+            "ey": ni / mcap,
+            "sy": rev / mcap,
+            "bm": equity / mcap,
+            "fcfy": (get("cfo_ttm") - get("capex_ttm").fillna(0)) / mcap,
+            "roe": ni / equity.where(equity > 0),
+            "roa": ni / assets,
+            "gross_margin": get("gross_profit_ttm") / rev,
+            "op_margin": get("op_income_ttm") / rev,
+            "leverage": get("liabilities") / assets,
+            "accruals": (ni - get("cfo_ttm")) / assets,
+            "rev_growth": get("revenue_growth"),
+            "ni_growth": get("net_income_growth"),
+            "days_since_filing": (dates.to_series() - pd.to_datetime(d["filing_date"])).dt.days,
+            "log_mcap": np.log(mcap),
+            "cash_to_assets": get("cash") / assets,
+        }
+        for n, v in vals.items():
+            cols[n][t] = v.astype("float64")
+    return {n: pd.DataFrame(c, index=dates).reindex(columns=tickers).replace([np.inf, -np.inf], np.nan)
+            for n, c in cols.items()}
 
 
 def market_features(cfg: Config, o: dict[str, pd.DataFrame], mask: pd.DataFrame, macro: pd.DataFrame,
@@ -170,6 +178,11 @@ def build_panel(cfg: Config, prices: pd.DataFrame, macro: pd.DataFrame, *, label
     mask = universe.membership_mask(cfg, dates, list(o["close"].columns))
     mask[universe.BENCHMARK] = False
     mask &= o["close"].notna() & o["open"].notna()
+    # Only names we can map to SEC filings. Otherwise "no fundamentals" would mostly flag
+    # companies that later left the index (their tickers vanish from today's SEC map) - a leak.
+    covered = fundamentals.tickers_with_filings(cfg)
+    if covered:
+        mask.loc[:, [t for t in mask.columns if t not in covered]] = False
 
     log.info("computing technical features (%d dates x %d tickers)", len(dates), len(tickers))
     f = technical_features(o)
@@ -191,7 +204,7 @@ def build_panel(cfg: Config, prices: pd.DataFrame, macro: pd.DataFrame, *, label
 
     raw = {
         "raw_vol_63": f["vol_63"],
-        "raw_price": o["split_close"],
+        "raw_price": o["raw_close"],
         "raw_adv_21": o["dollar_volume"].rolling(21).mean(),
     }
     ranked = {k: _xs_rank(v, mask) for k, v in f.items()}

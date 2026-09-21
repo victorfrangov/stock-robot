@@ -113,7 +113,9 @@ def simulate(cfg: Config, scores: pd.DataFrame, panel: pd.DataFrame, prices: pd.
         on = np.where(w > 0, O[i] / prevC[i] - 1, 0.0)
         dead = (w > 0) & ~np.isfinite(on)  # no price today (delisted/halted): exit flat at last close
         on[~np.isfinite(on)] = 0.0
+        forced = w[dead].sum()
         w[dead] = 0.0
+        V *= 1 - forced * cost_rate  # still pay to get out
         cash = 1.0 - w.sum()
         g = 1.0 + (w * on).sum() + cash * rf[i]
         V *= g
@@ -168,7 +170,7 @@ def metrics(returns: pd.Series, rf: pd.Series | None = None, turnover: pd.Series
         "cagr": eq.iloc[-1] ** (1 / years) - 1,
         "total_return": eq.iloc[-1] - 1,
         "vol": r.std() * np.sqrt(252),
-        "sharpe": ex.mean() / r.std() * np.sqrt(252) if r.std() > 0 else np.nan,
+        "sharpe": ex.mean() / ex.std() * np.sqrt(252) if ex.std() > 0 else np.nan,
         "sortino": ex.mean() * 252 / down if down > 0 else np.nan,
         "max_drawdown": dd.min(),
         "calmar": (eq.iloc[-1] ** (1 / years) - 1) / abs(dd.min()) if dd.min() < 0 else np.nan,

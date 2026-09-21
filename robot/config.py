@@ -16,7 +16,7 @@ DEFAULTS: dict[str, Any] = {
     "data": {
         "start_date": "2003-01-01",
         "sec_user_agent": "stock-robot research bot",
-        "fred_series": ["VIXCLS", "T10Y2Y", "DGS3MO", "BAMLH0A0HYM2"],
+        "fred_series": ["VIXCLS", "T10Y2Y", "DGS3MO", "DGS10"],
     },
     "label": {"horizon": 5},
     "model": {
@@ -59,6 +59,7 @@ DEFAULTS: dict[str, Any] = {
         "port": 4002,
         "client_id": 17,
         "paper_only": True,
+        "manage_all_positions": False,
         "order_type": "auto",
     },
     "risk": {

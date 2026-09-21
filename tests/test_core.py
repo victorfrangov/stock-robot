@@ -167,6 +167,39 @@ def test_plan_orders(cfg):
     assert list(orders)[0] == "C"            # sells first
 
 
+def test_dry_run_does_not_touch_risk_state(cfg):
+    from robot.journal import Journal
+    from robot.risk import evaluate
+
+    j = Journal(cfg)
+    j.record_equity("2026-01-01", 100_000)
+    st = evaluate(cfg, j, 70_000, "2026-01-02", persist=False)
+    assert st.flatten
+    assert j.get("halted") is None and len(j.equity()) == 1
+
+
+def test_resume_resets_drawdown_peak(cfg):
+    from robot.journal import Journal
+    from robot.risk import evaluate
+
+    j = Journal(cfg)
+    j.record_equity("2026-01-01", 100_000)
+    assert evaluate(cfg, j, 70_000, "2026-01-02").flatten
+    assert j.get("halted") == "2026-01-02"
+    j.set("halted", None)
+    j.set("peak_reset", "2026-01-03")  # what `robot resume` does
+    st = evaluate(cfg, j, 70_500, "2026-01-05")
+    assert not st.flatten and st.allow_buys and j.get("halted") is None
+
+
+def test_last_completed_session_handles_holidays():
+    from robot.broker import ET
+    from robot.calendar import last_completed_session
+
+    assert last_completed_session(pd.Timestamp("2026-11-27 09:00", tz=ET)).date().isoformat() == "2026-11-25"
+    assert last_completed_session(pd.Timestamp("2026-09-22 16:20", tz=ET)).date().isoformat() == "2026-09-22"
+
+
 def test_session_phase():
     from robot.broker import ET
     d = pd.Timestamp("2026-09-22 09:00", tz=ET).to_pydatetime()

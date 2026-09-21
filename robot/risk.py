@@ -38,27 +38,33 @@ class RiskState:
     reasons: list[str] = field(default_factory=list)
 
 
-def evaluate(cfg: Config, journal: Journal, net_liq: float, today: str) -> RiskState:
+def evaluate(cfg: Config, journal: Journal, net_liq: float, today: str, persist: bool = True) -> RiskState:
+    """Risk state for today. `persist=False` (dry runs) leaves the journal untouched."""
     eq = journal.equity()
     history = eq[eq.index < today]
     prev = float(history.iloc[-1]) if len(history) else None
-    peak = max([net_liq, *eq.tolist()])
+    reset = journal.get("peak_reset")  # set by `robot resume` so an old peak can't re-trigger the halt
+    since = eq[eq.index >= reset] if reset else eq
+    peak = max([net_liq, *since.tolist()])
     st = RiskState(net_liq=net_liq, peak=peak, prev=prev)
     st.drawdown_pct = (1 - net_liq / peak) * 100 if peak > 0 else 0.0
     if prev:
         st.daily_loss_pct = (1 - net_liq / prev) * 100
 
-    if journal.get("halted"):
+    halted = journal.get("halted")
+    if halted:
         st.allow_buys = False
-        st.reasons.append(f"halted since {journal.get('halted')} - run `robot resume` to re-enable")
-    if st.drawdown_pct >= cfg.risk.max_drawdown_pct:
+        st.reasons.append(f"halted since {halted} - run `robot resume` to re-enable")
+    if st.drawdown_pct >= cfg.risk.max_drawdown_pct and not halted:
         st.flatten, st.allow_buys = True, False
         st.reasons.append(f"drawdown {st.drawdown_pct:.1f}% >= {cfg.risk.max_drawdown_pct}% - flattening")
-        journal.set("halted", today)
+        if persist:
+            journal.set("halted", today)
     if st.daily_loss_pct >= cfg.risk.max_daily_loss_pct:
         st.allow_buys = False
         st.reasons.append(f"daily loss {st.daily_loss_pct:.1f}% >= {cfg.risk.max_daily_loss_pct}% - no buys today")
-    journal.record_equity(today, net_liq)
+    if persist:
+        journal.record_equity(today, net_liq)
     return st
 
 

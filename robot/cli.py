@@ -134,7 +134,13 @@ def cmd_flatten(cfg, a):
 def cmd_resume(cfg, a):
     from robot.journal import Journal
 
-    Journal(cfg).set("halted", None)
+    from datetime import datetime
+
+    from robot.broker import ET
+
+    j = Journal(cfg)
+    j.set("halted", None)
+    j.set("peak_reset", datetime.now(ET).date().isoformat())
     kill = cfg.root / cfg.risk.kill_switch_file
     if kill.exists():
         kill.unlink()
