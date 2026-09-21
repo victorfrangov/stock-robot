@@ -1,0 +1,74 @@
+# stock-robot configuration. Every key is optional; defaults live in robot/config.py.
+# Override the location of this file with ROBOT_CONFIG=/path/to/config.yaml.
+
+# Where downloaded data, trained models, logs and state are kept (gitignored).
+# Override with ROBOT_DATA_DIR.
+data_dir: data
+
+data:
+  start_date: "2003-01-01"      # first day of price history to download
+  # SEC asks automated clients to identify themselves: "<name> <email>".
+  # Override with the SEC_USER_AGENT env var.
+  sec_user_agent: "stock-robot research bot"
+  fred_series: [VIXCLS, T10Y2Y, DGS3MO, BAMLH0A0HYM2]
+
+label:
+  horizon: 5                    # trading days the model predicts ahead
+
+model:
+  ensemble: {gbm: 0.7, nn: 0.3} # blend of cross-sectional ranks; set nn to 0 to disable
+  train_sample_every: 2         # use every Nth trading day for training (speed)
+  gbm:
+    n_estimators: 600
+    learning_rate: 0.03
+    num_leaves: 63
+    min_child_samples: 500
+    subsample: 0.7
+    subsample_freq: 1
+    colsample_bytree: 0.7
+    reg_lambda: 5.0
+  nn:
+    hidden_layers: [256, 128, 64]
+    dropout: 0.3
+    epochs: 8
+    batch_size: 4096
+    lr: 0.001
+    weight_decay: 0.0001
+
+portfolio:
+  top_k: 20                     # number of stocks held
+  hold_buffer: 40               # keep a holding while it ranks inside this many
+  rebalance_days: 5             # trading days between rebalances
+  weighting: inverse_vol        # equal | inverse_vol
+  max_weight: 0.08              # cap per position (fraction of equity)
+  cash_buffer: 0.02             # fraction of equity always left in cash
+  regime_filter: true           # scale exposure down when SPY is below its 200d average
+  regime_exposure: 0.5          # exposure when the regime filter is triggered
+  min_price: 5.0
+
+costs:
+  commission_bps: 0.5           # IBKR tiered is ~0.35c/share, roughly 0.1-1 bps on S&P names
+  slippage_bps: 5.0
+
+backtest:
+  start: "2012-01-01"
+  retrain_months: 6
+  min_train_years: 5
+
+broker:
+  host: 127.0.0.1
+  port: 4002                    # 4002 = IB Gateway paper, 7497 = TWS paper
+  client_id: 17
+  paper_only: true              # refuse to trade any account that is not a paper (DU...) account
+  order_type: auto              # auto = market-on-open before the open, adaptive market during RTH
+
+risk:
+  max_order_value: 50000        # refuse any single order above this notional (USD)
+  max_daily_loss_pct: 4.0       # halt new buys for the day after this loss vs yesterday's close
+  max_drawdown_pct: 25.0        # flatten and halt if equity falls this far below its peak
+  kill_switch_file: KILL        # create data/KILL to stop all trading immediately
+
+schedule:
+  trade_time: "09:00"           # US/Eastern; before the 09:28 MOO cutoff
+  retrain_weekday: 5            # Saturday (Mon=0)
+  retrain_time: "10:00"
