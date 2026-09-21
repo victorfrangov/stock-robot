@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 def get_panel(cfg: Config, rebuild: bool = False) -> pd.DataFrame:
     """Full-history training panel, cached until prices or fundamentals change."""
-    path = cfg.path("features", "panel.parquet")
+    path = cfg.path("features", f"panel_h{cfg.label.horizon}.parquet")
     facts = cfg.root / "fundamentals" / "facts"
     newest_input = max([prices_path(cfg).stat().st_mtime,
                         *(p.stat().st_mtime for p in facts.glob("*.parquet"))] if facts.exists()
@@ -45,7 +45,7 @@ def latest_model_path(cfg: Config) -> Path:
 
 def train_production(cfg: Config, use_nn: bool = True, panel: pd.DataFrame | None = None) -> Path:
     panel = panel if panel is not None else get_panel(cfg)
-    feats = feature_columns(panel)
+    feats = feature_columns(panel, cfg.model.get("exclude_features"))
     all_dates = pd.DatetimeIndex(np.sort(panel["date"].unique()))
     step = cfg.model.train_sample_every
     keep_days = all_dates[::-1][::step]  # always include the most recent labelled days

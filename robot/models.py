@@ -19,6 +19,19 @@ import pandas as pd
 log = logging.getLogger(__name__)
 
 
+def _torch():
+    """Import torch safely next to LightGBM.
+
+    torch ships its own libomp and LightGBM uses Homebrew's; with two OpenMP runtimes
+    multi-threaded torch CPU ops deadlock after a LightGBM fit on macOS. The heavy
+    lifting runs on MPS/CUDA anyway, so torch CPU is pinned to one thread.
+    """
+    import torch
+
+    torch.set_num_threads(1)
+    return torch
+
+
 def _prep(X: pd.DataFrame, mkt_mean: pd.Series | None = None, mkt_std: pd.Series | None = None) -> np.ndarray:
     """NN input: ranked features as-is (NaN -> 0 = median), market features z-scored."""
     X = X.copy()
@@ -74,7 +87,7 @@ class NNModel:
 
     @staticmethod
     def _device():
-        import torch
+        torch = _torch()
 
         if torch.cuda.is_available():
             return torch.device("cuda")
@@ -93,7 +106,7 @@ class NNModel:
         return nn.Sequential(*layers)
 
     def fit(self, X: pd.DataFrame, y: np.ndarray, dates: np.ndarray | None = None) -> "NNModel":
-        import torch
+        torch = _torch()
 
         torch.manual_seed(0)
         self.features = list(X.columns)
@@ -146,21 +159,21 @@ class NNModel:
         return self
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
-        import torch
+        torch = _torch()
 
         Xn = torch.from_numpy(_prep(X[self.features], self.mkt_mean, self.mkt_std))
         with torch.no_grad():
             return torch.cat([self.net(Xn[i : i + 65536]).squeeze(-1) for i in range(0, len(Xn), 65536)]).numpy()
 
     def save(self, path: Path) -> None:
-        import torch
+        torch = _torch()
 
         torch.save({"state": self.net.state_dict(), "params": self.params,
                     "mkt_mean": self.mkt_mean.to_dict(), "mkt_std": self.mkt_std.to_dict()}, path / "nn.pt")
 
     @classmethod
     def load(cls, path: Path, features: list[str]) -> "NNModel":
-        import torch
+        torch = _torch()
 
         blob = torch.load(path / "nn.pt", map_location="cpu", weights_only=False)
         m = cls(blob["params"])
@@ -184,7 +197,7 @@ class Ensemble:
             self.members["gbm"] = GBMModel(gbm_params)
         if "nn" in self.weights:
             try:
-                import torch  # noqa: F401
+                _torch()
 
                 self.members["nn"] = NNModel(nn_params)
             except ImportError:

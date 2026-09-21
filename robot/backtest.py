@@ -41,7 +41,7 @@ def make_ensemble(cfg: Config, use_nn: bool = True) -> Ensemble:
 
 def walk_forward(cfg: Config, panel: pd.DataFrame, use_nn: bool = True) -> tuple[pd.DataFrame, pd.Series]:
     """Out-of-sample scores for every date from backtest.start on."""
-    feats = feature_columns(panel)
+    feats = feature_columns(panel, cfg.model.get("exclude_features"))
     all_dates = pd.DatetimeIndex(np.sort(panel["date"].unique()))
     start = max(pd.Timestamp(cfg.backtest.start),
                 all_dates[0] + pd.DateOffset(years=cfg.backtest.min_train_years))

@@ -22,6 +22,8 @@ DEFAULTS: dict[str, Any] = {
     "model": {
         "ensemble": {"gbm": 0.7, "nn": 0.3},
         "train_sample_every": 2,
+        # Raw rate levels are non-stationary: trees use them as a clock and memorise eras.
+        "exclude_features": ["mkt_dgs10", "mkt_dgs3mo", "mkt_t10y2y", "mkt_vixcls"],
         "gbm": {
             "n_estimators": 600,
             "learning_rate": 0.03,

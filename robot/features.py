@@ -231,5 +231,11 @@ def build_panel(cfg: Config, prices: pd.DataFrame, macro: pd.DataFrame, *, label
     return panel
 
 
-def feature_columns(panel: pd.DataFrame) -> list[str]:
-    return [c for c in panel.columns if c not in META]
+def feature_columns(panel: pd.DataFrame, exclude: list[str] | None = None) -> list[str]:
+    """Model inputs: everything except metadata and names listed in `exclude` (exact or prefix*)."""
+    exclude = exclude or []
+
+    def dropped(c: str) -> bool:
+        return any(c == e or (e.endswith("*") and c.startswith(e[:-1])) for e in exclude)
+
+    return [c for c in panel.columns if c not in META and not dropped(c)]
