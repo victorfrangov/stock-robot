@@ -20,6 +20,10 @@ model:
   train_sample_every: 2         # use every Nth trading day for training (speed)
   # Raw rate levels are non-stationary: trees use them as a clock and memorise eras.
   exclude_features: [mkt_dgs10, mkt_dgs3mo, mkt_t10y2y, mkt_vixcls]
+  # Earnings (SEC 8-K) and industry-momentum features: higher broad IC on DEV but no better
+  # top-of-ranking spread, so off under the pre-declared selection rule. Kept for research.
+  earnings_features: false
+  industry_momentum: false
   gbm:
     n_estimators: 600
     learning_rate: 0.03
@@ -38,15 +42,22 @@ model:
     weight_decay: 0.0001
 
 portfolio:
-  top_k: 20                     # number of stocks held
-  hold_buffer: 40               # keep a holding while it ranks inside this many
+  # Frozen 2026-09-22 from DEV (2012-2019) research, before the 2020+ holdout was evaluated.
+  mode: topk                    # topk | tilt (enhanced index)
+  top_k: 50                     # number of stocks held
+  hold_buffer: 150              # keep a holding while it ranks inside this many (cuts turnover)
+  weighting: cap                # cap | equal | inverse_vol | score  (cap keeps size close to SPY)
+  score_halflife: 1             # causal EMA of daily scores; the signal decays within days
+  trade_band: 0.0               # skip re-weightings smaller than this fraction of equity
   rebalance_days: 5             # trading days between rebalances
-  weighting: inverse_vol        # equal | inverse_vol
-  max_weight: 0.08              # cap per position (fraction of equity)
-  cash_buffer: 0.02             # fraction of equity always left in cash
-  regime_filter: true           # scale exposure down when SPY is below its 200d average
-  regime_exposure: 0.5          # exposure when the regime filter is triggered
+  max_weight: 0.10              # cap per position (fraction of equity)
+  cash_buffer: 0.0              # fraction of equity left in cash
+  regime_filter: false          # halving exposure below SPY's 200d average cost ~2.5%/yr on DEV
+  regime_exposure: 0.5
   min_price: 5.0
+  tilt_strength: 2.0            # tilt mode only
+  tilt_exclude: 0.2
+  tilt_cap_power: 1.0
 
 costs:
   commission_bps: 0.5           # IBKR tiered is ~0.35c/share, roughly 0.1-1 bps on S&P names

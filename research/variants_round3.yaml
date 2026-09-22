@@ -1,0 +1,16 @@
+# Round 3 (DEV): the signal decays within days (top-50 spread: +5.9%/yr raw, +0.8% at halflife 5),
+# so control turnover with hysteresis instead of heavy smoothing.
+cap30_hl0_buf90:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 0, weighting: cap, max_weight: 0.12, top_k: 30, hold_buffer: 90}
+cap30_hl1_buf90:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 1, weighting: cap, max_weight: 0.12, top_k: 30, hold_buffer: 90}
+cap30_hl2_buf90:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 2, weighting: cap, max_weight: 0.12, top_k: 30, hold_buffer: 90}
+cap50_hl1_buf150:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 1, weighting: cap, max_weight: 0.10, top_k: 50, hold_buffer: 150}
+eq50_hl1_buf150:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 1, weighting: equal, max_weight: 0.10, top_k: 50, hold_buffer: 150}
+tilt_k6_ex50_hl1:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 1, tilt_strength: 6, tilt_exclude: 0.5, max_weight: 0.12, trade_band: 0.003}
+tilt_k8_ex60_hl2:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 2, tilt_strength: 8, tilt_exclude: 0.6, max_weight: 0.12, trade_band: 0.003}

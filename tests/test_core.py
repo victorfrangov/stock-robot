@@ -63,6 +63,16 @@ def test_train_rows_purges_label_overlap(cfg):
     assert dates.get_loc(last_train) + h + 1 < dates.get_loc(deploy)
 
 
+def test_multi_horizon_target_widens_purge(cfg):
+    dates = pd.bdate_range("2020-01-01", periods=100)
+    panel = pd.DataFrame({"date": dates, "ticker": "A", "target": 0.1})
+    cfg["model"]["train_sample_every"] = 1
+    cfg["label"]["target"] = "multi"
+    deploy = dates[80]
+    last_train = panel.loc[train_rows(panel, cfg, deploy, dates), "date"].max()
+    assert dates.get_loc(last_train) + 21 + 1 < dates.get_loc(deploy)  # 21-day labels can't overlap
+
+
 # ------------------------------------------------------------------ portfolio
 
 def test_capped_weights_respects_cap_and_total():
@@ -91,7 +101,8 @@ def test_select_targets_hysteresis(cfg):
 
 
 def test_regime_filter_scales_exposure(cfg):
-    cfg["portfolio"].update(top_k=2, weighting="equal", max_weight=1.0, cash_buffer=0.0, regime_exposure=0.5)
+    cfg["portfolio"].update(top_k=2, weighting="equal", max_weight=1.0, cash_buffer=0.0, regime_exposure=0.5,
+                            regime_filter=True)
     scores = pd.Series({"A": 2.0, "B": 1.0})
     w = select_targets(cfg, scores, set(), scores * 0 + 0.02, scores * 0 + 50, regime_risk_off=True)
     assert w.sum() == pytest.approx(0.5)

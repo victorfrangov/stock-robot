@@ -187,7 +187,7 @@ def build_panel(cfg: Config, prices: pd.DataFrame, macro: pd.DataFrame, *, label
     log.info("computing technical features (%d dates x %d tickers)", len(dates), len(tickers))
     f = technical_features(o)
     f.update(fundamental_features(cfg, prices, o, tickers))
-    if cfg.model.get("earnings_features", True):
+    if cfg.model.get("earnings_features", False):
         from robot.data.earnings import earnings_features
 
         f.update(earnings_features(cfg, o, tickers))
@@ -205,7 +205,7 @@ def build_panel(cfg: Config, prices: pd.DataFrame, macro: pd.DataFrame, *, label
         for s, cols in members.items():
             rel[cols] = masked[cols].sub(masked[cols].median(axis=1), axis=0)
         f[f"{base}_vs_sector"] = rel
-    if cfg.model.get("industry_momentum", True):
+    if cfg.model.get("industry_momentum", False):
         # industry momentum: the average return of the stock's sector (Moskowitz-Grinblatt)
         for base in ("ret_21", "ret_126"):
             ind = pd.DataFrame(np.nan, index=dates, columns=o["close"].columns)
@@ -228,6 +228,13 @@ def build_panel(cfg: Config, prices: pd.DataFrame, macro: pd.DataFrame, *, label
         fwd = o["open"].shift(-(h + 1)) / o["open"].shift(-1) - 1  # decide at close t, trade at open t+1
         raw["fwd_ret"] = fwd
         target = fwd
+        if cfg.label.get("target", "rank") == "multi":
+            # average rank over 5/10/21-day horizons: rewards signals that persist (less turnover)
+            parts = []
+            for hh in (5, 10, 21):
+                f_h = o["open"].shift(-(hh + 1)) / o["open"].shift(-1) - 1
+                parts.append(_xs_rank(f_h, mask))
+            target = sum(parts) / len(parts)
         if cfg.label.get("target", "rank") == "sector_neutral":
             target = pd.DataFrame(np.nan, index=dates, columns=o["close"].columns)
             masked = fwd.where(mask)

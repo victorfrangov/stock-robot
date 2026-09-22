@@ -22,8 +22,8 @@ log = logging.getLogger(__name__)
 
 def get_panel(cfg: Config, rebuild: bool = False) -> pd.DataFrame:
     """Full-history training panel, cached until prices or fundamentals change."""
-    key = f"h{cfg.label.horizon}_{cfg.label.get('target', 'rank')}_im{int(cfg.model.get('industry_momentum', True))}" \
-          f"_ea{int(cfg.model.get('earnings_features', True))}"
+    key = f"h{cfg.label.horizon}_{cfg.label.get('target', 'rank')}_im{int(cfg.model.get('industry_momentum', False))}" \
+          f"_ea{int(cfg.model.get('earnings_features', False))}"
     path = cfg.path("features", f"panel_{key}.parquet")
     facts = cfg.root / "fundamentals" / "facts"
     newest_input = max([prices_path(cfg).stat().st_mtime,

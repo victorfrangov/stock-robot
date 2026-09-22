@@ -1,0 +1,12 @@
+# FROZEN 2026-09-22 before the holdout was evaluated.
+# Chosen on DEV (2012-2019) only: model = baseline ensemble (highest DEV top-50 spread t-stat,
+# rule declared before E3/E4 results); construction = highest DEV information ratio in round 3.
+final:
+  portfolio: {mode: topk, regime_filter: false, cash_buffer: 0.0, score_halflife: 1, weighting: cap,
+              max_weight: 0.10, top_k: 50, hold_buffer: 150, rebalance_days: 5}
+final_2x_costs:
+  portfolio: {mode: topk, regime_filter: false, cash_buffer: 0.0, score_halflife: 1, weighting: cap,
+              max_weight: 0.10, top_k: 50, hold_buffer: 150, rebalance_days: 5}
+  costs: {commission_bps: 1.0, slippage_bps: 10.0}
+old_default:
+  portfolio: {}

@@ -23,13 +23,18 @@ log = logging.getLogger(__name__)
 
 def train_rows(panel: pd.DataFrame, cfg: Config, before: pd.Timestamp, all_dates: pd.DatetimeIndex) -> pd.Series:
     """Rows usable for training a model deployed at `before` (no label overlap)."""
-    h = cfg.label.horizon
+    h = label_span(cfg)
     pos = all_dates.searchsorted(before)
     cutoff = all_dates[max(pos - (h + 2), 0)]  # label at t needs open[t+h+1] < before
     step = cfg.model.train_sample_every
     day_idx = pd.Series(np.arange(len(all_dates)), index=all_dates)
     keep_days = all_dates[(day_idx % step == 0).to_numpy()]
     return (panel["date"] < cutoff) & panel["target"].notna() & panel["date"].isin(keep_days)
+
+
+def label_span(cfg: Config) -> int:
+    """Longest forward window any training label looks at (sets the purge gap)."""
+    return max(cfg.label.horizon, 21) if cfg.label.get("target", "rank") == "multi" else cfg.label.horizon
 
 
 def make_ensemble(cfg: Config, use_nn: bool = True) -> Ensemble:
