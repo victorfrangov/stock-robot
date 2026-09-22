@@ -50,9 +50,10 @@ data  ->  features (≈60)  ->  LightGBM + neural net ensemble  ->  portfolio  -
   * An enhanced-index "tilt" mode is also available (`portfolio.mode: tilt`).
 * **Risk** (enforced in code, independent of the model):
   * Refuses any account that isn't a paper account (`DU…`/`DF…`) and refuses the live ports 7496 and 4001.
-  * Refuses any single buy over $50k.
-  * Stops buying for the day after a 4% daily loss.
-  * Flattens and halts at a 25% drawdown from peak.
+  * Refuses any single buy over 15% of equity.
+  * Postpones the whole rebalance after a 4% daily loss (selling without buying would leave a lopsided book).
+  * Flattens and halts at a 45% drawdown from peak, a catastrophe stop well outside the backtest's worst (34%).
+  * Only ever touches positions it opened itself.
   * `robot kill` stops all trading immediately.
 
 ## Setup
@@ -181,6 +182,7 @@ real trading is unknown; the only honest test left is the forward paper record, 
 
 ## Caveats
 
-* Backtests flatter. About 300 of the historical members were delisted and Yahoo no longer serves their prices, so some survivorship bias remains. Treat the backtest as an upper bound.
+* Backtests flatter. About 55% of the companies that left the index have no Yahoo history, so the simulator never sees a delisting. Treat every backtest number here as an upper bound. Fixing this needs a paid survivorship-bias-free price source (Norgate, EODHD, Sharadar).
+* Yahoo's daily prices are unvalidated and occasionally wrong (recycled symbols, spin-off adjustments); the feed filter catches the gross cases only.
 * Paper fills are simulated by IBKR and are kinder than real ones.
 * This is a research project, not financial advice. Keep it on paper until it has months of live paper results that agree with the backtest.
