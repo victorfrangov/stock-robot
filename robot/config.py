@@ -73,9 +73,10 @@ DEFAULTS: dict[str, Any] = {
         "order_type": "auto",
     },
     "risk": {
-        "max_order_value": 50000,
+        "max_order_pct": 0.15,
+        "max_order_value": None,
         "max_daily_loss_pct": 4.0,
-        "max_drawdown_pct": 25.0,
+        "max_drawdown_pct": 45.0,
         "kill_switch_file": "KILL",
     },
     "schedule": {"trade_time": "09:00", "retrain_weekday": 5, "retrain_time": "10:00"},

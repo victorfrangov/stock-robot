@@ -53,7 +53,7 @@ def plan_orders(cfg: Config, targets: pd.Series, positions: dict[str, float], pr
         band = cfg.portfolio.get("trade_band", 0.0) * net_liq
         if qty == 0 or (want != 0 and abs(qty) * px < max(MIN_ORDER_VALUE, band if cur else 0)):
             continue  # skip tiny re-weightings (same no-trade band as the backtest); exits always go
-        reason = validate_order(cfg, t, qty, px, allow_buys)
+        reason = validate_order(cfg, t, qty, px, allow_buys, net_liq)
         orders.append({"ticker": t, "qty": qty, "price": px, "current": cur, "target": want, "reject": reason})
     return sorted(orders, key=lambda o: o["qty"])  # sells (negative) first
 
@@ -109,6 +109,10 @@ def run_trade(cfg: Config, dry_run: bool = False, force_rebalance: bool = False,
                     log.info("cancelled %d stale robot orders", cancelled)
             net_liq = broker.net_liquidation()
             all_positions = broker.positions()
+            # Ownership is reconciled against what is actually held: a buy that never filled
+            # drops out, a sell that never filled stays owned and is retried next rebalance.
+            if not dry_run and not cfg.broker.get("manage_all_positions", False):
+                journal.set("owned", sorted(t for t in journal.get("owned", []) if t in all_positions))
             positions = _managed(cfg, journal, all_positions)
             unmanaged = sorted(set(all_positions) - set(positions))
             risk = evaluate(cfg, journal, net_liq, str(now.date()), persist=not dry_run)
@@ -116,9 +120,22 @@ def run_trade(cfg: Config, dry_run: bool = False, force_rebalance: bool = False,
                            unmanaged=unmanaged, drawdown_pct=round(risk.drawdown_pct, 2), risk=risk.reasons)
             if unmanaged:
                 log.info("leaving %d positions the robot didn't open: %s", len(unmanaged), unmanaged)
+            # A held name with no bar for `asof` would look like it left the universe and be sold.
+            no_bar = sorted(t for t in positions if t not in set(scored["ticker"]))
+            if no_bar and not risk.flatten:
+                log.warning("no price bar today for held %s - keeping them untouched", no_bar)
+                positions = {t: q for t, q in positions.items() if t not in no_bar}
+                summary["no_bar"] = no_bar
 
             since = _trading_days_since(prices, journal.get("last_rebalance"))
             due = force_rebalance or not positions or since >= cfg.portfolio.rebalance_days or risk.flatten
+            if due and not risk.allow_buys and not risk.flatten:
+                # Selling without buying would leave a lopsided book the backtest never models;
+                # wait for the next session instead (the halt/daily-loss reason is logged).
+                msg = f"rebalance postponed: {'; '.join(risk.reasons)}"
+                log.warning(msg)
+                journal.end_run(run_id, "ok", msg)
+                return {**summary, "orders": [], "note": msg}
             scores = scored.set_index("ticker")["score"]
             if risk.flatten:
                 targets = pd.Series(dtype=float)
@@ -164,9 +181,7 @@ def run_trade(cfg: Config, dry_run: bool = False, force_rebalance: bool = False,
                                            ib_order_id=trade.order.orderId)
                 placed.append((row, trade))
                 if o["target"] > 0:
-                    owned.add(o["ticker"])
-                else:
-                    owned.discard(o["ticker"])
+                    owned.add(o["ticker"])  # exits leave `owned` at the next run's reconciliation
             journal.set("owned", sorted(owned))
             journal.set("last_rebalance", str(asof.date()))
             broker.ib.sleep(2)

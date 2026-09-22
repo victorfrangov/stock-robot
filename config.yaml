@@ -77,9 +77,12 @@ broker:
   order_type: auto              # auto = market-on-open before the open, adaptive market during RTH
 
 risk:
-  max_order_value: 50000        # refuse any single order above this notional (USD)
-  max_daily_loss_pct: 4.0       # halt new buys for the day after this loss vs yesterday's close
-  max_drawdown_pct: 25.0        # flatten and halt if equity falls this far below its peak
+  max_order_pct: 0.15           # refuse any single buy above this fraction of equity
+  max_order_value: null         # optional absolute cap in USD (null = off)
+  max_daily_loss_pct: 4.0       # postpone the rebalance after this loss vs yesterday's close
+  # Catastrophe stop: flatten and halt below this drawdown from peak. The backtest's worst
+  # drawdown is 34% (Mar 2020); a 25% stop would have flattened the book on 2020-03-12.
+  max_drawdown_pct: 45.0
   kill_switch_file: KILL        # create data/KILL to stop all trading immediately
 
 schedule:

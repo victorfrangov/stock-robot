@@ -68,7 +68,8 @@ def evaluate(cfg: Config, journal: Journal, net_liq: float, today: str, persist:
     return st
 
 
-def validate_order(cfg: Config, ticker: str, qty: int, price: float, allow_buys: bool) -> str | None:
+def validate_order(cfg: Config, ticker: str, qty: int, price: float, allow_buys: bool,
+                   net_liq: float | None = None) -> str | None:
     """Return a rejection reason, or None if the order is fine."""
     if qty == 0:
         return "zero quantity"
@@ -76,6 +77,13 @@ def validate_order(cfg: Config, ticker: str, qty: int, price: float, allow_buys:
         return "buys disabled by risk state"
     if not (price and price > 0):
         return None if qty < 0 else "no price"  # never block an exit for lack of a quote
-    if qty > 0 and qty * price > cfg.risk.max_order_value:  # sells only ever reduce risk
-        return f"notional ${abs(qty) * price:,.0f} > max_order_value ${cfg.risk.max_order_value:,.0f}"
+    if qty < 0:
+        return None  # sells only ever reduce risk
+    notional = qty * price
+    cap_abs = cfg.risk.get("max_order_value")
+    if cap_abs and notional > cap_abs:
+        return f"notional ${notional:,.0f} > max_order_value ${cap_abs:,.0f}"
+    cap_pct = cfg.risk.get("max_order_pct")
+    if cap_pct and net_liq and notional > cap_pct * net_liq:
+        return f"notional ${notional:,.0f} > {cap_pct:.0%} of equity (${cap_pct * net_liq:,.0f})"
     return None

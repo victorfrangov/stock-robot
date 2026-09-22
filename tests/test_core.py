@@ -159,12 +159,41 @@ def test_broker_refuses_live_port(cfg):
 
 
 def test_validate_order(cfg):
-    assert validate_order(cfg, "A", 10, 100.0, allow_buys=True) is None
+    assert validate_order(cfg, "A", 10, 100.0, allow_buys=True, net_liq=1e6) is None
     assert "disabled" in validate_order(cfg, "A", 10, 100.0, allow_buys=False)
     assert validate_order(cfg, "A", -10, 100.0, allow_buys=False) is None  # sells always allowed
-    assert "max_order_value" in validate_order(cfg, "A", 10_000, 100.0, allow_buys=True)
-    assert validate_order(cfg, "A", -10_000, 100.0, allow_buys=True) is None
+    assert "of equity" in validate_order(cfg, "A", 2_000, 100.0, allow_buys=True, net_liq=1e6)  # 20% > 15%
+    assert validate_order(cfg, "A", 1_000, 100.0, allow_buys=True, net_liq=1e6) is None  # a 10% position is fine
+    assert validate_order(cfg, "A", -10_000, 100.0, allow_buys=True, net_liq=1e6) is None
     assert validate_order(cfg, "A", -5, float("nan"), allow_buys=True) is None
+    cfg["risk"]["max_order_value"] = 50_000
+    assert "max_order_value" in validate_order(cfg, "A", 1_000, 100.0, allow_buys=True, net_liq=1e6)
+
+
+def test_renames_resolve_chains():
+    from robot.data.universe import resolve_rename
+
+    assert resolve_rename("SYMC") == "GEN" and resolve_rename("FB") == "META" and resolve_rename("AAPL") == "AAPL"
+
+
+def test_validate_feed_drops_junk():
+    from robot.data.prices import validate_feed
+
+    dates = pd.bdate_range("2012-01-01", periods=300)
+    good = pd.DataFrame({"date": dates, "ticker": "GOOD", "open": 10.0, "high": 10.5, "low": 9.5, "close": 10.2,
+                         "adj_close": 10.2, "volume": 1e6, "splits": 0.0})
+    junk = good.assign(ticker="JUNK", volume=0.0, high=10.0, low=10.0, close=10.0)
+    out = validate_feed(pd.concat([good, junk]))
+    assert set(out["ticker"]) == {"GOOD"}
+
+
+def test_share_scale_errors_dropped():
+    from robot.data.fundamentals import _drop_scale_errors
+
+    r = pd.DataFrame({"end": pd.to_datetime(["2012-03-31", "2012-06-30", "2012-09-30", "2012-12-31"]),
+                      "val": [4.8e9, 4.85e9, 4.8e15, 4.7e9],
+                      "avail": pd.to_datetime(["2012-05-01", "2012-08-01", "2012-11-01", "2013-02-01"])})
+    assert _drop_scale_errors(r)["val"].tolist() == [4.8e9, 4.85e9, 4.7e9]
 
 
 def test_plan_orders(cfg):
@@ -182,6 +211,7 @@ def test_dry_run_does_not_touch_risk_state(cfg):
     from robot.journal import Journal
     from robot.risk import evaluate
 
+    cfg["risk"]["max_drawdown_pct"] = 25.0
     j = Journal(cfg)
     j.record_equity("2026-01-01", 100_000)
     st = evaluate(cfg, j, 70_000, "2026-01-02", persist=False)
@@ -193,6 +223,7 @@ def test_resume_resets_drawdown_peak(cfg):
     from robot.journal import Journal
     from robot.risk import evaluate
 
+    cfg["risk"]["max_drawdown_pct"] = 25.0
     j = Journal(cfg)
     j.record_equity("2026-01-01", 100_000)
     assert evaluate(cfg, j, 70_000, "2026-01-02").flatten

@@ -116,6 +116,10 @@ def fundamental_features(cfg: Config, prices: pd.DataFrame, o: dict[str, pd.Data
             continue
         factor = _split_factor_after(splits[t], d["shares_date"]) if "shares_date" in d else 1.0
         mcap = (px * shares * factor).where(lambda x: x > 0)
+        # Guard against residual share-count artifacts: a real cap does not move 5x against
+        # its own 63-day median in a day (a correctly handled split is continuous).
+        ref = mcap.rolling(63, min_periods=10).median().shift(1)
+        mcap = mcap.where(ref.isna() | ((mcap < ref * 5) & (mcap > ref / 5)))
         get = lambda k: d[k] if k in d else pd.Series(np.nan, index=dates)  # noqa: E731
         equity, assets = get("equity"), get("assets")
         ni, rev = get("net_income_ttm"), get("revenue_ttm")
