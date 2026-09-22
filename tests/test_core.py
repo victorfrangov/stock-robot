@@ -170,6 +170,14 @@ def test_validate_order(cfg):
     assert "max_order_value" in validate_order(cfg, "A", 1_000, 100.0, allow_buys=True, net_liq=1e6)
 
 
+def test_smoothing_forgets_across_gaps():
+    from robot.portfolio import smooth_scores
+
+    s = pd.DataFrame({"A": [0.5] * 5 + [np.nan] * 200 + [-0.5]}, index=pd.bdate_range("2020-01-01", periods=206))
+    out = smooth_scores(s, halflife=1)
+    assert out["A"].iloc[-1] == pytest.approx(-0.5, abs=1e-6)  # the old +0.5 has fully decayed away
+
+
 def test_renames_resolve_chains():
     from robot.data.universe import resolve_rename
 
@@ -202,8 +210,8 @@ def test_plan_orders(cfg):
     prices = pd.Series({"A": 100.0, "B": 50.0, "C": 20.0})
     orders = {o["ticker"]: o for o in plan_orders(cfg, targets, positions, prices, 10_000, True)}
     assert orders["C"]["qty"] == -7          # exit names not in the target
-    assert orders["A"]["qty"] == 40          # 50 shares wanted, 10 held
-    assert orders["B"]["qty"] == 100
+    assert orders["A"]["qty"] == 39          # 49 shares wanted after the 1% gap buffer, 10 held
+    assert orders["B"]["qty"] == 99
     assert list(orders)[0] == "C"            # sells first
 
 

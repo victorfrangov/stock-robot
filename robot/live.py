@@ -21,6 +21,7 @@ from robot.risk import TradingHalted, check_kill_switch, evaluate, validate_orde
 
 log = logging.getLogger(__name__)
 MIN_ORDER_VALUE = 100.0
+SIZING_BUFFER = 0.01
 
 
 def _trading_days_since(prices: pd.DataFrame, since: str | None) -> int:
@@ -46,7 +47,9 @@ def plan_orders(cfg: Config, targets: pd.Series, positions: dict[str, float], pr
         if t in targets:
             if not has_px:
                 continue  # can't size a position without a price
-            want = math.floor(targets[t] * net_liq / px)
+            # Sized from yesterday's close but filled at the open: leave 1% for a gap up so a
+            # fully invested book never dips into margin.
+            want = math.floor(targets[t] * net_liq * (1 - SIZING_BUFFER) / px)
         else:
             want = 0
         qty = int(want - cur)

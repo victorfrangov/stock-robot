@@ -53,11 +53,13 @@ def exposure(cfg: Config, regime_risk_off: bool) -> float:
 def smooth_scores(scores: pd.DataFrame, halflife: float) -> pd.DataFrame:
     """Causal EMA of each ticker's daily score (dates x tickers). Cuts turnover from noise.
 
-    Scores are per-day ranks in [-0.5, 0.5]; a name that leaves the universe resets.
+    Scores are per-day ranks in [-0.5, 0.5]. Missing days count as elapsed time
+    (ignore_na=False), so a name that leaves the universe and returns later starts
+    fresh, just as live scoring, which only sees the last few sessions, would treat it.
     """
     if not halflife:
         return scores
-    return scores.ewm(halflife=halflife, min_periods=1, ignore_na=True).mean().where(scores.notna())
+    return scores.ewm(halflife=halflife, min_periods=1, ignore_na=False).mean().where(scores.notna())
 
 
 def _topk(cfg: Config, s: pd.Series, current: set[str], vol: pd.Series, mcap: pd.Series | None) -> pd.Series:
