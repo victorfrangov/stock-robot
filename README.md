@@ -163,7 +163,21 @@ tuned on, so it is weak evidence; the best of 30 random tries would show a t-sta
 
 ### Post-hoc 2020–2026 (not a clean holdout)
 
-FILL_POSTHOC
+Reported two ways, because the answer depends on whether the March 2020 crash is entered with
+the book carried in from 2019 or with a portfolio started fresh in January 2020. That gap alone
+shows how much of the result is luck about which names happened to be held that month.
+
+| Model | 2020–26, carried in | 2020–26, fresh start | 2021–26 | 2020 alone | t (carried) | 95% CI |
+|---|---|---|---|---|---|---|
+| **Frozen (rates excluded)** | +4.6%/yr | +1.3%/yr | −2.1%/yr | +52 pts | 1.1 | [−7%, +16%] |
+| Rates included | +0.8%/yr | +3.0%/yr | −0.8%/yr | +5 pts | 0.5 | [−11%, +15%] |
+
+Frozen model, carried in, yearly excess vs SPY: 2020 +52.4 · 2021 −0.3 · 2022 +9.6 · 2023 −13.1 ·
+2024 −5.2 · 2025 −3.7 · 2026 YTD −3.2. Over 2023–2026 it trails SPY by 6.8%/yr.
+
+Before the data fixes the same configuration showed +5.6%/yr here with 2020 at +56.7; the fixes
+removed about a point a year. CAPM alpha is +2.1%/yr (t = 0.9) on 2012–2019 and indistinguishable
+from zero afterwards, for either model.
 
 ### Statistical reality
 
