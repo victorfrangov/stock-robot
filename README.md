@@ -3,8 +3,8 @@
 A daily swing-trading AI for S&P 500 stocks that paper-trades on Interactive Brokers.
 
 Each weekday before the open it ranks every S&P 500 stock by expected return
-over the next 5 trading days. It holds the top 20, long-only, weighted by inverse
-volatility, and sends market-on-open orders to your **IBKR paper account**.
+over the next 5 trading days. It holds the top 50, long-only and weighted by market
+cap, and sends market-on-open orders to your **IBKR paper account**.
 Every week it downloads fresh data and retrains itself.
 
 All training data is free:
@@ -13,7 +13,8 @@ All training data is free:
 |---|---|---|
 | Yahoo Finance (`yfinance`) | Daily OHLCV since 2003, splits, dividends | Adjusted for total return |
 | SEC EDGAR XBRL `companyfacts` | Revenue, earnings, cash flow, balance sheet | **Point-in-time**: each number becomes visible on the day it was filed |
-| FRED | VIX, 10y-2y curve, 3m T-bill, high-yield spread | Lagged one day |
+| FRED | VIX, 10y-2y curve, 3m and 10y Treasury yields | Lagged one day |
+| SEC EDGAR submissions | Earnings-release dates (8-K item 2.02) | Optional research features, off by default |
 | [fja05680/sp500](https://github.com/fja05680/sp500) | Historical S&P 500 membership | Removes most survivorship bias |
 
 ## How it works
@@ -31,7 +32,8 @@ data  ->  features (≈60)  ->  LightGBM + neural net ensemble  ->  portfolio  -
   * sector-relative momentum
   * value, quality and growth from SEC filings (earnings, sales and FCF yield, book-to-market, ROE, ROA, margins, leverage, accruals, revenue and earnings growth, days since the last filing)
 
-  Market-regime features are added raw: SPY trend, breadth, dispersion, VIX, credit spread, yield curve.
+  Market-regime features are added raw: SPY trend, volatility, breadth, dispersion, change in VIX.
+  Raw rate and VIX *levels* are excluded because the trees used them to memorize eras.
 * **Target**: the cross-sectional rank of the forward return from the next open to the open `horizon` days later. This matches how the robot trades: it decides at the close and executes at the next open.
 * **Models**:
   * LightGBM (70%).
@@ -41,11 +43,11 @@ data  ->  features (≈60)  ->  LightGBM + neural net ensemble  ->  portfolio  -
   * Walk-forward: the model is retrained every 6 months and only ever sees data from before its trading period.
   * A purge gap keeps training labels from overlapping the test window.
   * Simulated day by day: decide at the close, trade at the next open, 5.5 bps cost on turnover, idle cash earns the T-bill rate.
-* **Portfolio**:
-  * Holds the top 20. A current holding is kept while it still ranks inside the top 40, which cuts turnover.
-  * Rebalances every 5 trading days.
-  * Maximum 8% per name, 2% cash buffer.
-  * Exposure is halved when SPY is below its 200-day average.
+* **Portfolio** (frozen 2026-09-22 from dev-period research; see below):
+  * Scores are smoothed with a 1-day half-life EMA.
+  * Holds the top 50, cap-weighted, max 10% per name. A current holding is kept while it ranks inside the top 150.
+  * Rebalances every 5 trading days. Fully invested, no regime filter.
+  * An enhanced-index "tilt" mode is also available (`portfolio.mode: tilt`).
 * **Risk** (enforced in code, independent of the model):
   * Refuses any account that isn't a paper account (`DU…`/`DF…`) and refuses the live ports 7496 and 4001.
   * Refuses any single buy over $50k.
@@ -123,35 +125,66 @@ Everything the robot downloads or produces lives in `data/` (gitignored):
 curve and feature importances. `data/state/journal.sqlite` holds the trading
 history.
 
-## Backtest results (walk-forward, out-of-sample, after costs)
+## Results: can it beat the S&P 500?
 
-Run on 2026-09-22 with the default config. Model retrained every 6 months; Jan 2012 – Sep 2026.
+The goal was to beat SPY without fooling ourselves, so the research followed a fixed protocol:
 
-| | CAGR | Vol | Sharpe | Max DD | Rank IC | Turnover/yr |
-|---|---|---|---|---|---|---|
-| **Ensemble (GBM 70% + NN 30%)** | **15.5%** | 17.4% | **0.82** | **−30.5%** | **0.025** | 53× |
-| GBM only | 15.5% | 18.5% | 0.78 | −33.6% | 0.022 | 52× |
-| NN only | 14.4% | 16.4% | 0.80 | −27.1% | 0.022 | 49× |
-| SPY | 15.2% | 16.5% | 0.83 | −33.7% | | |
-| Equal-weight S&P 500 | 14.0% | 17.3% | 0.74 | −40.0% | | |
+* **Dev period, 2012–2019.** Every design choice was made on this period only.
+* **Sealed holdout, 2020 – Sep 2026.** Opened exactly once, after the config was frozen and committed (`8bfbaf7`).
+* **Walk-forward scores throughout.** Each 6-month segment is scored by a model trained only on earlier data, with a purge gap.
+* **Costs.** 5.5 bps per trade, with a check at 2× costs.
+* **Controls.** The same construction was run on random scores and on pure size ranking.
 
-What these numbers mean:
+The research lab (`research/lab.py`) prints dev-period numbers unless `--reveal` is passed.
 
-* The model has a small but real signal: rank IC ≈ 0.025, positive in about two-thirds of half-years.
-* It beats the equal-weight S&P and roughly matches SPY with a smaller drawdown.
-* It does **not** beat SPY by much: 2012–2026 was dominated by mega-cap tech.
-* It lagged SPY in 2014–2019 and caught up after 2020.
+### Final, frozen strategy (after costs)
 
-What was tried and rejected (see git history):
+| | CAGR | SPY | Excess/yr | Sharpe (SPY) | Max DD (SPY) | Tracking err. | Years beating SPY |
+|---|---|---|---|---|---|---|---|
+| Dev 2012–2019 | 19.7% | 14.8% | **+4.9%** | 1.18 (1.09) | −23.6% (−19.4%) | 6.1% | 6 of 8 |
+| **Holdout 2020–2026** | **21.2%** | **15.6%** | **+5.6%** | 0.73 (0.68) | −33.8% (−33.7%) | 14.4% | 3 of 7 |
+| Holdout at 2× costs | 19.1% | 15.6% | +3.5% | 0.67 (0.68) | −33.9% | 14.4% | 2 of 7 |
 
-* Raw interest-rate and VIX levels as features. The trees used them to memorize eras, giving IC 0.016 and a −40% drawdown.
-* A 21-day horizon. IC fell to 0.005.
+Yearly excess return vs SPY:
 
-Ideas worth testing next:
+| Year | Excess | Year | Excess |
+|---|---|---|---|
+| 2012 | −7.2 | 2020 | **+56.7** |
+| 2013 | +9.6 | 2021 | +1.1 |
+| 2014 | −3.9 | 2022 | +9.2 |
+| 2015 | +12.4 | 2023 | −10.1 |
+| 2016 | +0.4 | 2024 | −0.8 |
+| 2017 | +12.2 | 2025 | −8.7 |
+| 2018 | +8.4 | 2026 (YTD) | −2.9 |
+| 2019 | +8.8 | | |
 
-* Smooth scores over a few days to cut the 53× turnover. Costs are about 2.9%/yr.
-* Earnings-date features.
-* A larger `top_k`.
+**Verdict:** the strategy beat SPY on the dev period and on the sealed holdout. But the holdout
+win is carried by 2020, when the model's short-term-reversal signal caught the post-crash rebound.
+From 2023 on it has lagged SPY every year: that was the concentrated mega-cap/AI rally, a hard
+regime for a reversal-driven stock picker. It is a real but regime-dependent edge, not a
+reliable yearly outperformer. The only honest remaining test is forward paper trading.
+
+### What the research found (dev period only)
+
+| Finding | Effect on dev excess return vs SPY |
+|---|---|
+| Regime filter (halve exposure below SPY's 200-day average) | cost about 2.5%/yr; removed |
+| Score smoothing and hysteresis instead of trading every signal change | turnover 56× → 23×, about +3%/yr |
+| Cap weighting within picks, rather than inverse-vol or equal | about +3–4%/yr; keeps size exposure close to SPY |
+| Control: same portfolio construction on **random** scores | −2.5%/yr, so the edge isn't structural |
+| Control: same portfolio construction on **size** only | +1.0%/yr |
+| Earnings-date (SEC 8-K) and industry-momentum features | IC 0.0195 → 0.0234 (t=1.3), no better top-50 spread; off |
+| Sector-neutral target, multi-horizon (5/10/21d) target | no improvement; off |
+
+The model signal is mostly short-term (top-50 spread +5.9%/yr gross raw, +0.8% after 5-day
+smoothing), so it has to be harvested with light smoothing and wide hold buffers.
+
+### Risks to know about
+
+* **Sector concentration.** There is no sector cap. The Sep 2026 portfolio is heavy in semiconductors and storage (MU, INTC, LRCX, AMAT, KLAC…).
+* **Lumpy tracking error.** Holdout tracking error is 14%, so expect multi-year stretches behind SPY.
+* **Survivorship bias.** Tickers without a current SEC mapping are excluded, which removes the leak but keeps some survivorship bias.
+* **Next steps, forward-tested only.** Ideas like a sector cap or a core-satellite (e.g. 70% SPY + 30% strategy) should be judged on forward paper results. The historical holdout has been used.
 
 ## Caveats
 
