@@ -149,6 +149,9 @@ findings. The material ones, all fixed or disclosed:
 
 ### Corrected results, 2012–2019 (after 5.5 bps costs, walk-forward)
 
+Equity curves for both models and SPY on the corrected data:
+`data/reports/final-corrected-20260922/final.png` (earlier `final-frozen-*` reports are pre-fix).
+
 Frozen construction (cap-weighted top 50, 1-day score smoothing, hold buffer 150, weekly):
 
 | Model variant | Rank IC | Top-50 spread t | Excess vs SPY | Info. ratio | Years ahead |
