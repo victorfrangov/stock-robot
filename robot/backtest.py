@@ -16,7 +16,7 @@ from robot.data import universe
 from robot.data.prices import total_return_ohlc
 from robot.features import feature_columns
 from robot.models import Ensemble
-from robot.portfolio import select_targets
+from robot.portfolio import apply_trade_band, select_targets, smooth_scores
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +47,8 @@ def walk_forward(cfg: Config, panel: pd.DataFrame, use_nn: bool = True) -> tuple
                 all_dates[0] + pd.DateOffset(years=cfg.backtest.min_train_years))
     starts = pd.date_range(start, all_dates[-1], freq=f"{cfg.backtest.retrain_months}MS")
     starts = [all_dates[all_dates.searchsorted(d)] for d in starts if d <= all_dates[-1]]
-    starts = sorted(set(starts)) + [all_dates[-1] + pd.Timedelta(days=1)]
+    end = pd.Timestamp(cfg.backtest.get("end") or all_dates[-1] + pd.Timedelta(days=1))
+    starts = sorted(d for d in set(starts) if d < end) + [min(end, all_dates[-1] + pd.Timedelta(days=1))]
 
     out, importance = [], None
     for i, (a, b) in enumerate(zip(starts[:-1], starts[1:]), 1):
@@ -82,7 +83,7 @@ def simulate(cfg: Config, scores: pd.DataFrame, panel: pd.DataFrame, prices: pd.
              macro: pd.DataFrame, score_col: str = "score") -> SimResult:
     o = total_return_ohlc(prices)
     first = scores["date"].min()
-    dates = o["close"].index[o["close"].index >= first]
+    dates = o["close"].index[(o["close"].index >= first) & (o["close"].index <= scores["date"].max())]
     tickers = list(o["close"].columns)
     col = {t: j for j, t in enumerate(tickers)}
     O = o["open"].reindex(dates).to_numpy()
@@ -90,6 +91,9 @@ def simulate(cfg: Config, scores: pd.DataFrame, panel: pd.DataFrame, prices: pd.
     prevC = o["close"].shift(1).reindex(dates).to_numpy()
 
     S = scores.pivot(index="date", columns="ticker", values=score_col).reindex(index=dates, columns=tickers)
+    S = smooth_scores(S, cfg.portfolio.get("score_halflife", 0))
+    mcap = (panel.pivot(index="date", columns="ticker", values="raw_mcap").reindex(index=dates, columns=tickers)
+            if "raw_mcap" in panel else None)
     vol = panel.pivot(index="date", columns="ticker", values="raw_vol_63").reindex(index=dates, columns=tickers)
     price = panel.pivot(index="date", columns="ticker", values="raw_price").reindex(index=dates, columns=tickers)
     spy = o["close"][universe.BENCHMARK]
@@ -145,10 +149,12 @@ def simulate(cfg: Config, scores: pd.DataFrame, panel: pd.DataFrame, prices: pd.
         # decision at the close for tomorrow's open
         if i - last_rebalance >= cfg.portfolio.rebalance_days and S.iloc[i].notna().sum() > cfg.portfolio.top_k:
             current = {tickers[j] for j in np.nonzero(w > 1e-6)[0]}
-            tw = select_targets(cfg, S.iloc[i], current, vol.iloc[i], price.iloc[i], bool(risk_off[i]))
+            tw = select_targets(cfg, S.iloc[i], current, vol.iloc[i], price.iloc[i], bool(risk_off[i]),
+                                None if mcap is None else mcap.iloc[i])
             pending = np.zeros(len(tickers))
             for tk, wt in tw.items():
                 pending[col[tk]] = wt
+            pending = apply_trade_band(pending, w, cfg.portfolio.get("trade_band", 0.0))
             weights_log[t] = tw
             last_rebalance = i
 

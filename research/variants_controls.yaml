@@ -1,0 +1,5 @@
+# The two leading constructions, used to test control (non-model) scores.
+cap20_hl10:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 10, weighting: cap, max_weight: 0.15}
+tilt_k8_ex60_hl10:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 10, tilt_strength: 8, tilt_exclude: 0.6, max_weight: 0.12, trade_band: 0.002}

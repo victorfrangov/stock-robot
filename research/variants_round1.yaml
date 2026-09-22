@@ -1,0 +1,24 @@
+# Round 1: portfolio construction on the existing walk-forward scores (DEV only).
+baseline: {}
+no_regime:
+  portfolio: {regime_filter: false}
+no_regime_nocash:
+  portfolio: {regime_filter: false, cash_buffer: 0.0}
+smooth3:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 3}
+smooth5:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 5}
+smooth5_band:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 5, trade_band: 0.01}
+top40_smooth5:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 5, top_k: 40, hold_buffer: 80, max_weight: 0.05}
+top20_equal_smooth5:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 5, weighting: equal}
+top20_cap_smooth5:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 5, weighting: cap, max_weight: 0.15}
+tilt_k2_ex20:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 5, tilt_strength: 2, tilt_exclude: 0.2, max_weight: 0.12, trade_band: 0.002}
+tilt_k4_ex30:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 5, tilt_strength: 4, tilt_exclude: 0.3, max_weight: 0.12, trade_band: 0.002}
+tilt_k6_ex50:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 5, tilt_strength: 6, tilt_exclude: 0.5, max_weight: 0.12, trade_band: 0.002}

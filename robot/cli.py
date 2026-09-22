@@ -40,6 +40,8 @@ def cmd_backtest(cfg, a):
 
     if a.start:
         cfg["backtest"]["start"] = a.start
+    if a.end:
+        cfg["backtest"]["end"] = a.end
     rep = run_backtest(cfg, get_panel(cfg, a.rebuild), load_prices(cfg), load_macro(cfg), use_nn=not a.no_nn)
     rows = [("strategy (ensemble)", rep["score"])]
     rows += [(f"  {k.removeprefix('score_')} only", rep[k]) for k in rep if k.startswith("score_")]
@@ -224,6 +226,7 @@ def main(argv: list[str] | None = None) -> None:
     s = sub.add_parser("backtest", help="walk-forward backtest with realistic costs")
     s.add_argument("--no-nn", action="store_true", help="GBM only (much faster)")
     s.add_argument("--start", help="first out-of-sample date")
+    s.add_argument("--end", help="stop the walk-forward here (e.g. keep a holdout sealed)")
     s.add_argument("--rebuild", action="store_true", help="rebuild the feature panel")
     s.set_defaults(fn=cmd_backtest)
 

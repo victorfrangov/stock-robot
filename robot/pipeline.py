@@ -22,7 +22,9 @@ log = logging.getLogger(__name__)
 
 def get_panel(cfg: Config, rebuild: bool = False) -> pd.DataFrame:
     """Full-history training panel, cached until prices or fundamentals change."""
-    path = cfg.path("features", f"panel_h{cfg.label.horizon}.parquet")
+    key = f"h{cfg.label.horizon}_{cfg.label.get('target', 'rank')}_im{int(cfg.model.get('industry_momentum', True))}" \
+          f"_ea{int(cfg.model.get('earnings_features', True))}"
+    path = cfg.path("features", f"panel_{key}.parquet")
     facts = cfg.root / "fundamentals" / "facts"
     newest_input = max([prices_path(cfg).stat().st_mtime,
                         *(p.stat().st_mtime for p in facts.glob("*.parquet"))] if facts.exists()
@@ -78,21 +80,33 @@ def load_model(cfg: Config) -> Ensemble:
 
 def score_latest(cfg: Config, model: Ensemble | None = None,
                  cutoff: pd.Timestamp | None = None) -> tuple[pd.Timestamp, pd.DataFrame]:
-    """Scores for the most recent completed session using only recent history (fast)."""
+    """Scores for the most recent completed session using only recent history (fast).
+
+    When `portfolio.score_halflife` is set, the last ~6 half-lives of sessions are scored
+    and smoothed exactly like the backtest does; `score` is the smoothed value.
+    """
     from robot.calendar import last_completed_session
+    from robot.portfolio import smooth_scores
 
     model = model or load_model(cfg)
     prices = load_prices(cfg)
     prices = prices[prices["date"] <= (cutoff or last_completed_session())]
     last = prices["date"].max()
-    recent = prices[prices["date"] >= last - pd.Timedelta(days=500)]
-    panel = build_panel(cfg, recent, load_macro(cfg), labels=False, since=last)
+    halflife = cfg.portfolio.get("score_halflife", 0)
+    sessions = np.sort(prices.loc[prices["ticker"] == "SPY", "date"].unique())
+    first = pd.Timestamp(sessions[-min(len(sessions), int(6 * halflife) + 1)]) if halflife else last
+    recent = prices[prices["date"] >= first - pd.Timedelta(days=500)]
+    panel = build_panel(cfg, recent, load_macro(cfg), labels=False, since=first)
     missing = [f for f in model.features if f not in panel]
     for f in missing:
         panel[f] = np.nan
     if missing:
         log.warning("features missing at inference (filled NaN): %s", missing)
-    panel["score"] = model.predict(panel[model.features], panel["date"].to_numpy())
+    panel["raw_score"] = model.predict(panel[model.features], panel["date"].to_numpy())
+    wide = panel.pivot(index="date", columns="ticker", values="raw_score")
+    smoothed = smooth_scores(wide, halflife).iloc[-1]
+    panel = panel[panel["date"] == last].copy()
+    panel["score"] = panel["ticker"].map(smoothed)
     panel = panel.sort_values("score", ascending=False).reset_index(drop=True)
     panel["rank"] = np.arange(1, len(panel) + 1)
     return last, panel

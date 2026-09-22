@@ -1,0 +1,7 @@
+# Finalists from rounds 1-2 (DEV). Regime filter off, no cash buffer.
+cap20_hl10:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 10, weighting: cap, max_weight: 0.15}
+cap30_hl10:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 10, weighting: cap, max_weight: 0.12, top_k: 30, hold_buffer: 60}
+tilt_k8_ex60_hl10:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 10, tilt_strength: 8, tilt_exclude: 0.6, max_weight: 0.12, trade_band: 0.002}

@@ -50,8 +50,9 @@ def plan_orders(cfg: Config, targets: pd.Series, positions: dict[str, float], pr
         else:
             want = 0
         qty = int(want - cur)
-        if qty == 0 or (want != 0 and abs(qty) * px < MIN_ORDER_VALUE):
-            continue  # skip tiny re-weightings; full exits always go through
+        band = cfg.portfolio.get("trade_band", 0.0) * net_liq
+        if qty == 0 or (want != 0 and abs(qty) * px < max(MIN_ORDER_VALUE, band if cur else 0)):
+            continue  # skip tiny re-weightings (same no-trade band as the backtest); exits always go
         reason = validate_order(cfg, t, qty, px, allow_buys)
         orders.append({"ticker": t, "qty": qty, "price": px, "current": cur, "target": want, "reject": reason})
     return sorted(orders, key=lambda o: o["qty"])  # sells (negative) first
@@ -122,8 +123,9 @@ def run_trade(cfg: Config, dry_run: bool = False, force_rebalance: bool = False,
             if risk.flatten:
                 targets = pd.Series(dtype=float)
             else:
-                targets = select_targets(cfg, scores, set(positions), scored.set_index("ticker")["raw_vol_63"],
-                                         scored.set_index("ticker")["raw_price"], risk_off)
+                sc = scored.set_index("ticker")
+                targets = select_targets(cfg, scores, set(positions), sc["raw_vol_63"], sc["raw_price"], risk_off,
+                                         sc["raw_mcap"] if "raw_mcap" in sc else None)
             sig = scored[["ticker", "score", "rank"]].copy()
             sig["target_weight"] = sig["ticker"].map(targets).fillna(0.0)
             if not dry_run:

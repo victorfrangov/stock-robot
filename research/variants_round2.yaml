@@ -1,0 +1,23 @@
+# Round 2 (DEV only): regime filter off and no cash buffer everywhere (round 1).
+cap20_hl5:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 5, weighting: cap, max_weight: 0.15}
+cap20_hl10:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 10, weighting: cap, max_weight: 0.15}
+cap20_hl10_rb10:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 10, weighting: cap, max_weight: 0.15, rebalance_days: 10}
+cap30_hl10:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 10, weighting: cap, max_weight: 0.12, top_k: 30, hold_buffer: 60}
+cap50_hl10:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 10, weighting: cap, max_weight: 0.10, top_k: 50, hold_buffer: 100}
+cap20_hl10_mw10:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 10, weighting: cap, max_weight: 0.10}
+equal20_hl10:
+  portfolio: {regime_filter: false, cash_buffer: 0.0, score_halflife: 10, weighting: equal}
+tilt_k6_ex50_hl10:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 10, tilt_strength: 6, tilt_exclude: 0.5, max_weight: 0.12, trade_band: 0.002}
+tilt_k8_ex60_hl10:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 10, tilt_strength: 8, tilt_exclude: 0.6, max_weight: 0.12, trade_band: 0.002}
+tilt_k10_ex75_hl10:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 10, tilt_strength: 10, tilt_exclude: 0.75, max_weight: 0.12, trade_band: 0.002}
+tilt_k8_ex60_hl20:
+  portfolio: {mode: tilt, regime_filter: false, cash_buffer: 0.0, score_halflife: 20, tilt_strength: 8, tilt_exclude: 0.6, max_weight: 0.12, trade_band: 0.002}

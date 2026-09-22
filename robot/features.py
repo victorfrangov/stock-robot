@@ -19,7 +19,7 @@ from robot.data.prices import total_return_ohlc, wide
 
 log = logging.getLogger(__name__)
 
-META = ["date", "ticker", "sector", "target", "fwd_ret", "raw_vol_63", "raw_price", "raw_adv_21"]
+META = ["date", "ticker", "sector", "target", "fwd_ret", "raw_vol_63", "raw_price", "raw_adv_21", "raw_mcap"]
 
 
 def _rsi(close: pd.DataFrame, n: int = 14) -> pd.DataFrame:
@@ -187,6 +187,10 @@ def build_panel(cfg: Config, prices: pd.DataFrame, macro: pd.DataFrame, *, label
     log.info("computing technical features (%d dates x %d tickers)", len(dates), len(tickers))
     f = technical_features(o)
     f.update(fundamental_features(cfg, prices, o, tickers))
+    if cfg.model.get("earnings_features", True):
+        from robot.data.earnings import earnings_features
+
+        f.update(earnings_features(cfg, o, tickers))
     mkt = market_features(cfg, o, mask, macro, f)
 
     # sector-relative momentum
@@ -194,26 +198,42 @@ def build_panel(cfg: Config, prices: pd.DataFrame, macro: pd.DataFrame, *, label
     sector_of = {t: fundamentals.sic_sector(sic.get(t, 0)) for t in o["close"].columns}
     sectors = sorted(set(sector_of.values()))
     sector_code = {s: i for i, s in enumerate(sectors)}
+    members = {s: [t for t in o["close"].columns if sector_of[t] == s] for s in sectors}
     for base in ("ret_21", "ret_63", "mom_12_1"):
         rel = pd.DataFrame(np.nan, index=dates, columns=o["close"].columns)
         masked = f[base].where(mask)
-        for s in sectors:
-            cols = [t for t in o["close"].columns if sector_of[t] == s]
+        for s, cols in members.items():
             rel[cols] = masked[cols].sub(masked[cols].median(axis=1), axis=0)
         f[f"{base}_vs_sector"] = rel
+    if cfg.model.get("industry_momentum", True):
+        # industry momentum: the average return of the stock's sector (Moskowitz-Grinblatt)
+        for base in ("ret_21", "ret_126"):
+            ind = pd.DataFrame(np.nan, index=dates, columns=o["close"].columns)
+            masked = f[base].where(mask)
+            for s, cols in members.items():
+                if s != "Unknown":
+                    ind[cols] = np.repeat(masked[cols].mean(axis=1).to_numpy()[:, None], len(cols), axis=1)
+            f[f"sector_{base}"] = ind
 
     raw = {
         "raw_vol_63": f["vol_63"],
         "raw_price": o["raw_close"],
         "raw_adv_21": o["dollar_volume"].rolling(21).mean(),
     }
-    ranked = {k: _xs_rank(v, mask) for k, v in f.items()}
+    if "log_mcap" in f:
+        raw["raw_mcap"] = np.exp(f["log_mcap"])  # USD, point-in-time shares x price
 
     if labels:
         h = cfg.label.horizon
         fwd = o["open"].shift(-(h + 1)) / o["open"].shift(-1) - 1  # decide at close t, trade at open t+1
         raw["fwd_ret"] = fwd
-        raw["target"] = _xs_rank(fwd, mask)
+        target = fwd
+        if cfg.label.get("target", "rank") == "sector_neutral":
+            target = pd.DataFrame(np.nan, index=dates, columns=o["close"].columns)
+            masked = fwd.where(mask)
+            for s, cols in members.items():
+                target[cols] = masked[cols].sub(masked[cols].median(axis=1), axis=0)
+        raw["target"] = _xs_rank(target, mask)
 
     rows_mask = mask.copy()
     if since is not None:
@@ -222,7 +242,11 @@ def build_panel(cfg: Config, prices: pd.DataFrame, macro: pd.DataFrame, *, label
     cols = rows_mask.columns
     panel = pd.DataFrame({"date": dates[di], "ticker": cols[ti]})
     panel["sector"] = np.array([sector_code[sector_of[t]] for t in cols])[ti].astype("int16")
-    for name, frame in {**ranked, **raw}.items():
+    # Rank, extract and free one feature at a time: keeping every wide frame plus a
+    # ranked copy needs ~5 GB and swaps a 16 GB machine to a crawl.
+    for name in list(f):
+        panel[name] = _xs_rank(f.pop(name), mask).reindex(columns=cols).to_numpy(dtype="float32")[di, ti]
+    for name, frame in raw.items():
         panel[name] = frame.reindex(columns=cols).to_numpy(dtype="float32")[di, ti]
     mk = mkt.to_numpy(dtype="float32")[di]
     for j, name in enumerate(mkt.columns):

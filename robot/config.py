@@ -44,6 +44,12 @@ DEFAULTS: dict[str, Any] = {
         },
     },
     "portfolio": {
+        "mode": "topk",
+        "score_halflife": 0,
+        "trade_band": 0.0,
+        "tilt_strength": 2.0,
+        "tilt_exclude": 0.2,
+        "tilt_cap_power": 1.0,
         "top_k": 20,
         "hold_buffer": 40,
         "rebalance_days": 5,
