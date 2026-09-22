@@ -127,64 +127,57 @@ history.
 
 ## Results: can it beat the S&P 500?
 
-The goal was to beat SPY without fooling ourselves, so the research followed a fixed protocol:
+Short answer: **not demonstrably.** The model has a small, real stock-ranking signal, but every
+honest measurement leaves "beats SPY" open. The figures below follow an independent adversarial
+audit that found and fixed data and protocol problems, so they are lower than this README's
+earlier draft.
 
-* **Dev period, 2012–2019.** Every design choice was made on this period only.
-* **Sealed holdout, 2020 – Sep 2026.** Opened exactly once, after the config was frozen and committed (`8bfbaf7`).
-* **Walk-forward scores throughout.** Each 6-month segment is scored by a model trained only on earlier data, with a purge gap.
-* **Costs.** 5.5 bps per trade, with a check at 2× costs.
-* **Controls.** The same construction was run on random scores and on pure size ranking.
+### What the audit found
 
-The research lab (`research/lab.py`) prints dev-period numbers unless `--reveal` is passed.
+Six auditors (leakage, data quality, simulator, live parity, statistics, protocol) reported 30
+findings. The material ones, all fixed or disclosed:
 
-### Final, frozen strategy (after costs)
-
-| | CAGR | SPY | Excess/yr | Sharpe (SPY) | Max DD (SPY) | Tracking err. | Years beating SPY |
-|---|---|---|---|---|---|---|---|
-| Dev 2012–2019 | 19.7% | 14.8% | **+4.9%** | 1.18 (1.09) | −23.6% (−19.4%) | 6.1% | 6 of 8 |
-| **Holdout 2020–2026** | **21.2%** | **15.6%** | **+5.6%** | 0.73 (0.68) | −33.8% (−33.7%) | 14.4% | 3 of 7 |
-| Holdout at 2× costs | 19.1% | 15.6% | +3.5% | 0.67 (0.68) | −33.9% | 14.4% | 2 of 7 |
-
-Yearly excess return vs SPY:
-
-| Year | Excess | Year | Excess |
-|---|---|---|---|
-| 2012 | −7.2 | 2020 | **+56.7** |
-| 2013 | +9.6 | 2021 | +1.1 |
-| 2014 | −3.9 | 2022 | +9.2 |
-| 2015 | +12.4 | 2023 | −10.1 |
-| 2016 | +0.4 | 2024 | −0.8 |
-| 2017 | +12.2 | 2025 | −8.7 |
-| 2018 | +8.4 | 2026 (YTD) | −2.9 |
-| 2019 | +8.8 | | |
-
-**Verdict:** the strategy beat SPY on the dev period and on the sealed holdout. But the holdout
-win is carried by 2020, when the model's short-term-reversal signal caught the post-crash rebound.
-From 2023 on it has lagged SPY every year: that was the concentrated mega-cap/AI rally, a hard
-regime for a reversal-driven stock picker. It is a real but regime-dependent edge, not a
-reliable yearly outperformer. The only honest remaining test is forward paper trading.
-
-### What the research found (dev period only)
-
-| Finding | Effect on dev excess return vs SPY |
+| Finding | Fix |
 |---|---|
-| Regime filter (halve exposure below SPY's 200-day average) | cost about 2.5%/yr; removed |
-| Score smoothing and hysteresis instead of trading every signal change | turnover 56× → 23×, about +3%/yr |
-| Cap weighting within picks, rather than inverse-vol or equal | about +3–4%/yr; keeps size exposure close to SPY |
-| Control: same portfolio construction on **random** scores | −2.5%/yr, so the edge isn't structural |
-| Control: same portfolio construction on **size** only | +1.0%/yr |
-| Earnings-date (SEC 8-K) and industry-momentum features | IC 0.0195 → 0.0234 (t=1.3), no better top-50 spread; off |
-| Sector-neutral target, multi-horizon (5/10/21d) target | no improvement; off |
+| Market caps corrupted for ~20 names: some SEC share counts were 1e6× too large, and GOOGL's 20:1 split was applied twice; cap weighting pinned them at 10% | share-count scale filter; splits applied from the filing date; 5× rolling guard |
+| Ticker renames (FB→META, UTX→RTX, ANTM→ELV and 20 more) made companies vanish from the universe for their earlier years | rename map in `robot/data/universe.py` |
+| Recycled symbols pointed at the wrong instrument (PARA became a micro-cap with closes near 100,000) | feed validation inside each membership window |
+| Live risk config: a $50k order cap rejected every 10% position on a $1M paper account; a 25% drawdown stop would have flattened the book on 2020-03-12 | 15%-of-equity cap; 45% catastrophe stop; loss days postpone the rebalance instead of half-executing it |
+| **The holdout was not sealed.** The final model's 2012–2026 yearly table was printed hours before the dev/holdout split was declared, and the decision to drop rate-level features came from a full-period run whose gain was mostly 2020 | the exclusion was re-tested on 2012–2019 only (below); 2020–2026 results are reported as **post-hoc**, not as a clean holdout |
+| **Survivorship bias that free data cannot fix.** About 55% of the companies that left the index have no Yahoo history, so no delisting ever hits the simulator; a survivor-only equal-weight universe beat the true equal-weight index by about 1.3–1.5%/yr on 2012–2019 | disclosed; treat every excess return here as an upper bound |
 
-The model signal is mostly short-term (top-50 spread +5.9%/yr gross raw, +0.8% after 5-day
-smoothing), so it has to be harvested with light smoothing and wide hold buffers.
+### Corrected results, 2012–2019 (after 5.5 bps costs, walk-forward)
 
-### Risks to know about
+Frozen construction (cap-weighted top 50, 1-day score smoothing, hold buffer 150, weekly):
 
-* **Sector concentration.** There is no sector cap. The Sep 2026 portfolio is heavy in semiconductors and storage (MU, INTC, LRCX, AMAT, KLAC…).
-* **Lumpy tracking error.** Holdout tracking error is 14%, so expect multi-year stretches behind SPY.
-* **Survivorship bias.** Tickers without a current SEC mapping are excluded, which removes the leak but keeps some survivorship bias.
-* **Next steps, forward-tested only.** Ideas like a sector cap or a core-satellite (e.g. 70% SPY + 30% strategy) should be judged on forward paper results. The historical holdout has been used.
+| Model variant | Rank IC | Top-50 spread t | Excess vs SPY | Info. ratio | Years ahead |
+|---|---|---|---|---|---|
+| **Frozen: rate-level features excluded** | 0.021 | 1.6 | **+4.3%/yr** | 0.63 | 5 of 8 |
+| Rate levels included | 0.024 | 1.8 | +1.7%/yr | 0.28 | 5 of 8 |
+| Earnings-date + industry-momentum features on | 0.025 | 1.5 | +1.5%/yr | 0.27 | 4 of 8 |
+
+The three variants rank stocks about equally well (paired IC differences have t ≈ 0.5). The
+frozen one produces the best portfolio, but that is the noisy metric ~39 configurations were
+tuned on, so it is weak evidence; the best of 30 random tries would show a t-stat of about 2.
+
+### Post-hoc 2020–2026 (not a clean holdout)
+
+FILL_POSTHOC
+
+### Statistical reality
+
+* The earlier "+5.6%/yr on the holdout" had t = 1.2 and a bootstrap 95% CI of [−6%, +19%].
+  Excluding 2020 it was **−1.5%/yr**, and 2023–2026 was −6%/yr.
+* About 40% of the raw excess is beta (1.15 vs SPY), not stock selection; CAPM alpha is not
+  significant in any period.
+* The strategy's edge is a short-term reversal signal that pays off in sharp rebounds (2020)
+  and lags in narrow mega-cap rallies (2023–2025).
+
+### Verdict
+
+The model ranks stocks a little better than chance (IC ≈ 0.02, t ≈ 3.7), and the portfolio built
+on it kept up with or modestly beat SPY on the corrected 2012–2019 data. Whether that survives
+real trading is unknown; the only honest test left is the forward paper record, which starts now.
 
 ## Caveats
 
