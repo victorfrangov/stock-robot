@@ -209,6 +209,6 @@ fundamentals/
 models_full_dataset/
 models_limited/
 # stock-robot runtime data (prices, fundamentals, models, journal, logs)
-data/
+/data/
 .venv/
 KILL
